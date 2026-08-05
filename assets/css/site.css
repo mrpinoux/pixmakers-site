@@ -446,13 +446,49 @@ h1.shead__title {
   padding-inline: 1rem;
   margin-inline: -1rem;
   border-bottom: 1px solid var(--rule-dark);
-  transition: background .25s var(--ease);
+  position: relative;
+  /* Own stacking context, so the fill below can sit at z-index -1 — behind the
+     row's own text, but still in front of the page. Saves putting a z-index on
+     each of the four spans. */
+  isolation: isolate;
 }
 .paper .cast__row { border-bottom-color: var(--rule-light); }
-.cast__row:hover {
+
+/* The fill sweeps in from the left rather than cross-fading, and leaves to the
+   right — hence the two transform-origins. It is a pseudo-element driven by
+   transform alone: nothing in the grid is re-measured, so the row cannot
+   reflow mid-hover. */
+.cast__row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: var(--accent);
-  color: var(--on-accent);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform .45s var(--ease);
 }
+.cast__row:hover::before,
+.cast__row:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+/* The type rides the fill in, staggered so it reads as being pushed along by
+   it rather than moving on its own. */
+.cast__row .num,
+.cast__row .cast__name,
+.cast__row .cast__role,
+.cast__row .cast__go {
+  transition: transform .45s var(--ease), color .2s var(--ease);
+}
+.cast__row:hover .num       { transform: translateX(.3rem);  transition-delay: .02s; }
+.cast__row:hover .cast__name { transform: translateX(.75rem); transition-delay: .05s; }
+.cast__row:hover .cast__role { transform: translateX(.55rem); transition-delay: .09s; }
+.cast__row:hover .cast__go   { transform: translateX(-.4rem); transition-delay: .12s; }
+
+.cast__row:hover,
+.cast__row:focus-visible { color: var(--on-accent); }
 .cast__row:hover .num,
 .cast__row:hover .cast__role,
 .cast__row:hover .cast__go { color: var(--on-accent); }
@@ -1088,6 +1124,101 @@ h1.shead__title {
 }
 .lb__close:hover::before,
 .lb__close:hover::after { background: var(--on-accent); }
+
+/* Photo mode. The frame drops its 16/9 and shrink-wraps the picture, so the
+   black surrounding it belongs to .lb — and a click there still closes. */
+.lb--photo .lb__frame {
+  width: 100%;
+  aspect-ratio: auto;
+  display: grid;
+  place-items: center;
+}
+/* These are small 2013 files — 800px on the long edge. Left at their natural
+   size they sit tiny in the middle of a big screen, so they are allowed to
+   scale up, capped at 175% by --shot-cap (set per photo in site.js from the
+   real pixel width). Past that the softness stops being worth the size. */
+.lb--photo .lb__frame img {
+  display: block;
+  width: min(100%, var(--shot-cap, 100%));
+  height: auto;
+  /* Leaves the counter and the arrows clear on short screens. Clamping the
+     height re-derives the width, so the ratio holds. */
+  max-height: calc(100vh - clamp(6rem, 16vw, 10rem));
+}
+
+/* Arrows, drawn from a rotated corner — no glyph, no icon font. Absent
+   entirely outside photo mode, where there is nothing to step through. */
+.lb__nav { display: none; }
+.lb--photo .lb__nav {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid var(--rule-dark);
+  transition: background .18s var(--ease), border-color .18s var(--ease);
+}
+.lb__nav--prev { left: clamp(.5rem, 2vw, 1.75rem); }
+.lb__nav--next { right: clamp(.5rem, 2vw, 1.75rem); }
+.lb__nav::before {
+  content: "";
+  width: .8rem;
+  height: .8rem;
+  border-left: 1.5px solid var(--on-dark);
+  border-bottom: 1.5px solid var(--on-dark);
+}
+.lb__nav--prev::before { transform: rotate(45deg);   margin-left: .3rem; }
+.lb__nav--next::before { transform: rotate(-135deg); margin-right: .3rem; }
+.lb__nav:hover { background: var(--accent); border-color: var(--accent); }
+.lb__nav:hover::before { border-color: var(--on-accent); }
+
+.lb__count { display: none; }
+.lb--photo .lb__count {
+  display: block;
+  position: absolute;
+  bottom: clamp(.75rem, 2.5vw, 1.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: .12em;
+  color: var(--on-dark-muted);
+}
+
+/* --- Gallery ------------------------------------------------------------- *
+ * Archive contact sheet: many small frames on one ratio, grey until hovered.
+ * Same grammar as the article mosaic, at thumbnail scale.
+ * -------------------------------------------------------------------------- */
+
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(7.5rem, 13vw, 12rem), 1fr));
+  gap: clamp(.35rem, .8vw, .7rem);
+}
+.shot {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  background: repeating-linear-gradient(-45deg, #17171b 0 10px, #121215 10px 20px);
+  border: 1px solid var(--rule-dark);
+}
+/* Colour by default here, unlike the article mosaic: this is the raw roll, and
+   the point is the night itself — the reds and the lasers are the subject. */
+.shot img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .5s var(--ease), opacity .35s var(--ease);
+}
+.shots:hover .shot img { opacity: .55; }
+.shots .shot:hover img,
+.shots .shot:focus-visible img { opacity: 1; transform: scale(1.06); }
+.shot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* --- Motion -------------------------------------------------------------- */
 

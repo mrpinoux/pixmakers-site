@@ -26,10 +26,11 @@ Then open <http://localhost:4173>. (Opening the `.html` files directly with
 | `backstage-fabric-london.html` | Post: Fabric London | — |
 | `backstage-elle-bts.html` | Post: Elle — BTS | — |
 | `contact.html` | Contact | — |
+| `404.html` | Not found | — |
 
 Each page is fully self-contained: header, content, footer. There are no
-includes, so a change to the nav or footer has to be repeated across the ten
-files. That is the trade for having zero build tooling.
+includes, so a change to the nav or footer has to be repeated across every
+file. That is the trade for having zero build tooling.
 
 **Running order.** The work grids follow the same order as the current site,
 newest first. It is manual — the `01`, `02` numerals are written into the
@@ -176,6 +177,37 @@ The two existing posts were recovered from the current site, text and photos.
 **Their copy is in French** — 2013 diary entries in the author's own voice —
 while the rest of the site is English. Left as-is deliberately; say the word if
 you want them translated.
+
+### Galleries
+
+A post can end with the full contact sheet, below the edited mosaic — see the
+`.shots` grid at the foot of `backstage-fabric-london.html`, 110 frames. Files
+live in two sizes:
+
+```
+assets/img/backstage/<slug>/gallery/*.jpg     full size, opened by the lightbox
+assets/img/backstage/<slug>/gallery/t/*.jpg   400×267 thumbnails, shown in the grid
+```
+
+Thumbnails matter: 110 full-size files are 10.8 MB, the same 110 thumbnails are
+1.5 MB. Regenerate them with Pillow — `ImageOps.fit` to 400×267, quality 78 —
+whenever you add photos.
+
+Markup is a `.shots` grid of `<a class="shot" href="<full size>" data-shot>`
+wrapping the thumbnail. `site.js` reads **every** `[data-shot]` on the page as
+one set at click time, so the arrows and the ← → keys walk the whole gallery
+and wrap at both ends. The `href` is the no-JS fallback.
+
+Unlike the mosaic, gallery thumbnails are **in colour**. Hovering the grid dims
+every frame but the one under the cursor. The heading and intro carry `data-l`
+pairs like the rest of the post, so they follow the EN/FR switch.
+
+**Upscaling in the lightbox.** These files are 800px on the long edge, which
+looks lost on a large screen. `site.js` reads each photo's real width on load
+and writes `--shot-cap: <width × 1.75>px`; the CSS uses
+`width: min(100%, var(--shot-cap))`, so a photo grows to fill the space but
+never past 175%. Raise the multiplier if you ever replace these with bigger
+scans — at 175% an 800px file is already visibly soft.
 
 ## Office clocks
 

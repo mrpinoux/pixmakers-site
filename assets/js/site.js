@@ -26,13 +26,23 @@
     });
   }
 
-  /* ---- Video lightbox ------------------------------------------------------ *
-   * Clips play on the site, on black, instead of sending anyone to YouTube.
-   * Markup: data-video="youtube:dQw4w9WgXcQ" or "vimeo:123456789" on the tile
-   * link. The href stays as the fallback for no-JS and middle-click.
+  /* ---- Lightbox ------------------------------------------------------------ *
+   * One overlay, two payloads.
+   *
+   * Video — data-video="youtube:dQw4w9WgXcQ" or "vimeo:123456789" on the tile
+   * link. Clips play on the site, on black, instead of sending anyone to
+   * YouTube.
+   *
+   * Photo — data-shot on a link whose href is the full-size file. Every
+   * [data-shot] on the page forms one set, so the arrows and the ← → keys walk
+   * the whole gallery without reopening. The set is read at click time, not at
+   * load, so nothing breaks if the markup is generated later.
+   *
+   * In both cases the href stays as the fallback for no-JS and middle-click.
    * -------------------------------------------------------------------------- */
 
   var lb, lbFrame, lastFocus;
+  var shots = [], shotAt = -1;
 
   function embedUrl(spec) {
     var parts = String(spec).split(":");
@@ -48,21 +58,28 @@
     lb.className = "lb";
     lb.setAttribute("role", "dialog");
     lb.setAttribute("aria-modal", "true");
-    lb.setAttribute("aria-label", "Video player");
     lb.innerHTML =
       '<button class="lb__close" type="button" aria-label="Close"></button>' +
-      '<div class="lb__frame"></div>';
+      '<button class="lb__nav lb__nav--prev" type="button" aria-label="Previous photo"></button>' +
+      '<button class="lb__nav lb__nav--next" type="button" aria-label="Next photo"></button>' +
+      '<div class="lb__frame"></div>' +
+      '<p class="lb__count" aria-live="polite"></p>';
     lbFrame = lb.querySelector(".lb__frame");
     document.body.appendChild(lb);
 
     lb.addEventListener("click", function (e) {
-      if (e.target === lb || e.target.closest(".lb__close")) closeLightbox();
+      if (e.target.closest(".lb__nav--prev")) { stepPhoto(-1); return; }
+      if (e.target.closest(".lb__nav--next")) { stepPhoto(1);  return; }
+      // The frame spans the overlay in photo mode, so the black beside a
+      // portrait shot is the frame, not .lb — it has to close too.
+      if (e.target === lb || e.target === lbFrame || e.target.closest(".lb__close")) closeLightbox();
     });
   }
 
   function openLightbox(url) {
     if (!lb) buildLightbox();
     lastFocus = document.activeElement;
+    lb.setAttribute("aria-label", "Video player");
     lbFrame.innerHTML =
       '<iframe src="' + url + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
     lb.classList.add("is-on");
@@ -70,15 +87,69 @@
     lb.querySelector(".lb__close").focus();
   }
 
+  function openPhoto(i) {
+    if (!lb) buildLightbox();
+    if (!shots[i]) return;
+    var first = shotAt < 0;
+    if (first) lastFocus = document.activeElement;
+    shotAt = i;
+
+    var a = shots[i];
+    var cap = a.getAttribute("data-caption") || "";
+    lb.setAttribute("aria-label", "Photo viewer");
+    lb.classList.add("lb--photo", "is-on");
+    lbFrame.innerHTML =
+      '<img src="' + a.getAttribute("href") + '" alt="' + cap.replace(/"/g, "&quot;") + '">';
+
+    // The CSS wants a per-photo ceiling: 175% of the file's real width. Hidden
+    // until it is known, so nothing renders at the wrong size for a frame —
+    // the neighbours are already warm, so this is normally imperceptible.
+    var img = lbFrame.querySelector("img");
+    img.style.visibility = "hidden";
+    function sizeShot() {
+      if (img.naturalWidth) {
+        img.style.setProperty("--shot-cap", Math.round(img.naturalWidth * 1.75) + "px");
+      }
+      img.style.visibility = "";
+    }
+    if (img.complete) sizeShot();
+    else img.addEventListener("load", sizeShot, { once: true });
+
+    lb.querySelector(".lb__count").textContent = (i + 1) + " / " + shots.length;
+    document.body.style.overflow = "hidden";
+    // Only on the way in — stealing focus on every step would fight the arrows.
+    if (first) lb.querySelector(".lb__close").focus();
+
+    // Warm the neighbours so stepping is instant.
+    [i - 1, i + 1].forEach(function (j) {
+      if (shots[j]) { var p = new Image(); p.src = shots[j].getAttribute("href"); }
+    });
+  }
+
+  function stepPhoto(d) {
+    if (shotAt < 0 || !shots.length) return;
+    openPhoto((shotAt + d + shots.length) % shots.length);   // wraps both ways
+  }
+
   function closeLightbox() {
     if (!lb || !lb.classList.contains("is-on")) return;
-    lb.classList.remove("is-on");
+    lb.classList.remove("is-on", "lb--photo");
     lbFrame.innerHTML = "";          // stops playback
+    shotAt = -1;
     document.body.style.overflow = "";
     if (lastFocus) lastFocus.focus();
   }
 
   document.addEventListener("click", function (e) {
+    var shot = e.target.closest("[data-shot]");
+    if (shot) {
+      shots = [].slice.call(document.querySelectorAll("[data-shot]"));
+      var i = shots.indexOf(shot);
+      if (i < 0) return;             // not in the set — let the link behave normally
+      e.preventDefault();
+      openPhoto(i);
+      return;
+    }
     var trigger = e.target.closest("[data-video]");
     if (!trigger) return;
     var url = embedUrl(trigger.getAttribute("data-video"));
@@ -88,7 +159,10 @@
   });
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeLightbox();
+    if (e.key === "Escape") { closeLightbox(); return; }
+    if (shotAt < 0) return;          // arrows only mean something in a gallery
+    if (e.key === "ArrowLeft")  { e.preventDefault(); stepPhoto(-1); }
+    if (e.key === "ArrowRight") { e.preventDefault(); stepPhoto(1); }
   });
 
   /* ---- Post language switch ------------------------------------------------ *
