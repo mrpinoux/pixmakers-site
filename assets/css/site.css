@@ -322,9 +322,11 @@ h1.shead__title {
 }
 .hero__inner { position: relative; z-index: 1; }
 
-/* Pixel dust, thrown off the letters by the scatter. Above the type so the
-   motes read as coming off it, and inert to the pointer so the scatter still
-   receives every move. Built by site.js; absent without it. */
+/* Pixel dust, thrown off the letters by the scatter. Behind the type — the
+   motes pass under the letters rather than over them, which keeps the heading
+   clean and reads as debris falling away. Above .hero__bg, below .hero__inner.
+   Inert to the pointer so the scatter still receives every move. Built by
+   site.js; absent without it. */
 .hero__dust {
   position: absolute;
   inset: 0;
@@ -333,7 +335,7 @@ h1.shead__title {
      cover the hero. */
   width: 100%;
   height: 100%;
-  z-index: 2;
+  z-index: 0;
   pointer-events: none;
 }
 .hero__title {

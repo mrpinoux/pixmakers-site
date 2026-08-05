@@ -517,10 +517,12 @@
         x: x, y: y,
         vx: dx * .09 + (Math.random() - .5) * .5,
         vy: dy * .09 + (Math.random() - .5) * .5,
-        // 1–3 px is the base. Roughly a fifth come out oversized, up to 300%,
-        // so the dust has grain instead of reading as uniform noise.
-        s: Math.min(9, Math.round((1 + ((Math.random() * 3) | 0)) *
-             (Math.random() < .22 ? 1.6 + Math.random() * 1.4 : 1))),
+        // Two bands, stated absolutely rather than as a multiplier — a 1px
+        // grain tripled is still 3px, which is why the split has to be on the
+        // final size. Three in four land in the coarse band.
+        s: Math.random() < .75
+             ? 3 + ((Math.random() * 7) | 0)      // 3–9 px, the 300% band
+             : 1 + ((Math.random() * 3) | 0),     // 1–3 px, the original grain
         life: 1,
         // Slow: a mote lives roughly one to two and a half seconds.
         fade: .007 + Math.random() * .009,
