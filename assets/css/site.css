@@ -333,6 +333,15 @@ h1.shead__title {
   font-style: normal;
   color: var(--accent);
 }
+
+/* Scatter. site.js turns each letter into its own box so the pointer can shove
+   it about; words stay whole, so lines break exactly where they did before.
+   Only transforms move — the title's own metrics never change. */
+.hero__title .wd { display: inline-block; white-space: nowrap; }
+.hero__title .ch { display: inline-block; will-change: transform; }
+/* It is a toy, not a text field — keep the arrow, not the I-beam. */
+.hero__title[data-scatter] { cursor: default; }
+
 .hero__foot {
   display: flex;
   flex-wrap: wrap;

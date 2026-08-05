@@ -414,6 +414,114 @@
     img.addEventListener("load", function () { checkThumb(img); });
   });
 
+  /* ---- Hero scatter -------------------------------------------------------- *
+   * The pointer shoves the hero letters aside; they drift back the moment it
+   * stops moving. Opt in with data-scatter on the heading.
+   *
+   * Each letter becomes its own inline-block and is moved by transform only,
+   * so the heading's metrics never change and lines break where they always
+   * did. The loop parks itself once everything is at rest, so an idle tab
+   * costs nothing. Skipped for coarse pointers and for reduced-motion.
+   * -------------------------------------------------------------------------- */
+
+  (function () {
+    var title = document.querySelector("[data-scatter]");
+    if (!title || !window.matchMedia) return;
+    if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Split to words first — a word is one unbreakable box — then to letters.
+    var chars = [];
+    (function split(node) {
+      [].slice.call(node.childNodes).forEach(function (n) {
+        if (n.nodeType === 1) { split(n); return; }   // keep the <em> wrapper
+        if (n.nodeType !== 3) return;
+        var frag = document.createDocumentFragment();
+        n.nodeValue.split(/(\s+)/).forEach(function (part) {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+          var wd = document.createElement("span");
+          wd.className = "wd";
+          part.split("").forEach(function (c) {
+            var ch = document.createElement("span");
+            ch.className = "ch";
+            ch.textContent = c;
+            wd.appendChild(ch);
+            chars.push({ el: ch, x: 0, y: 0, cx: 0, cy: 0 });
+          });
+          frag.appendChild(wd);
+        });
+        n.parentNode.replaceChild(frag, n);
+      });
+    })(title);
+    if (!chars.length) return;
+
+    var RADIUS = 250;   // px of influence around the pointer
+    var PUSH   = 34;    // px a letter travels at the very centre
+    var EASE   = .16;   // per-frame approach to the target
+
+    var px = 0, py = 0, active = false, running = false, dirty = true, idle;
+
+    // Resting centres. The live rect includes the current offset, so take it
+    // back off — otherwise the anchors drift a little further every measure.
+    function measure() {
+      chars.forEach(function (c) {
+        var r = c.el.getBoundingClientRect();
+        c.cx = r.left + r.width / 2 - c.x;
+        c.cy = r.top + r.height / 2 - c.y;
+      });
+      dirty = false;
+    }
+
+    function frame() {
+      var moving = false;
+      for (var i = 0; i < chars.length; i++) {
+        var c = chars[i], tx = 0, ty = 0;
+        if (active) {
+          var dx = c.cx - px, dy = c.cy - py;
+          var d = Math.sqrt(dx * dx + dy * dy) || .001;
+          if (d < RADIUS) {
+            var f = 1 - d / RADIUS;
+            f = f * f * PUSH;                       // squared, so the falloff bites
+            tx = dx / d * f;
+            ty = dy / d * f;
+          }
+        }
+        c.x += (tx - c.x) * EASE;
+        c.y += (ty - c.y) * EASE;
+        if (Math.abs(c.x) > .05 || Math.abs(c.y) > .05) moving = true;
+        else { c.x = 0; c.y = 0; }
+        c.el.style.transform = (c.x || c.y)
+          ? "translate(" + c.x.toFixed(2) + "px," + c.y.toFixed(2) + "px)"
+          : "";
+      }
+      if (moving || active) requestAnimationFrame(frame);
+      else running = false;
+    }
+
+    function start() { if (!running) { running = true; requestAnimationFrame(frame); } }
+
+    var zone = title.closest(".hero") || title;
+    zone.addEventListener("mousemove", function (e) {
+      if (dirty) measure();
+      px = e.clientX; py = e.clientY;
+      active = true;
+      clearTimeout(idle);
+      // The letters go home when the pointer stops, not when it leaves.
+      idle = setTimeout(function () { active = false; start(); }, 150);
+      start();
+    });
+    zone.addEventListener("mouseleave", function () {
+      active = false; clearTimeout(idle); start();
+    });
+
+    addEventListener("resize", function () { dirty = true; });
+    addEventListener("scroll", function () { dirty = true; }, { passive: true });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { dirty = true; });
+    }
+  })();
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {

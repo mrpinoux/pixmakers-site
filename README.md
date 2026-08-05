@@ -47,6 +47,22 @@ The look is a film press kit / contact sheet.
 - **Interaction** — thumbnails sit desaturated and snap to full colour on
   hover; rows and buttons invert to an accent fill.
 
+### Motion
+
+Three deliberate pieces, all transform-driven so nothing is ever re-measured:
+
+- **Director rows** — the accent fill wipes in from the left and out to the
+  right, with the numeral, name, role and cue sliding in behind it.
+- **Hero scatter** — `data-scatter` on a heading makes `site.js` split it into
+  per-letter boxes; the pointer pushes nearby letters aside and they drift home
+  when it stops moving. Tune `RADIUS` (reach) and `PUSH` (travel) in `site.js`.
+  Skipped for touch and for reduced-motion, and the loop parks itself once
+  everything is at rest. Remove the attribute to switch it off.
+- **Gallery grid** — hovering dims every frame but the one under the cursor.
+
+`prefers-reduced-motion` zeroes every transition site-wide; the scatter checks
+it separately, since a JS transform is not a transition.
+
 ### Accent switcher
 
 Four accents ship, switchable from the swatches in the masthead: **pink**
