@@ -1,21 +1,25 @@
-# Old Google Sites URLs -> new pages.
-# 301 = permanent, so search engines transfer the ranking instead of dropping
-# the old pages. Without this, every link that exists today 404s on launch.
+# Old Google Sites URLs -> new pages. 301 so search engines move the ranking
+# across instead of dropping the old pages.
 #
-# Format is Netlify's, and Cloudflare Pages reads the same file.
-# On Vercel use vercel.json "redirects"; on Apache use .htaccess.
+# Targets are extensionless on purpose. Cloudflare Pages serves /directors from
+# directors.html and 301s /directors.html back to /directors. Pointing a rule
+# at the .html form therefore costs an extra hop — and where the old URL and
+# the clean URL are the same string it is an infinite loop.
+#
+# That is why /directors and /contact have NO rule here: Pages already serves
+# both natively, and adding one broke them.
 
-/home                       /                              301
-/directors                  /directors.html                301
-/directors/mr-pinoux        /director-mr-pinoux.html       301
-/directors/ariles-de-tizi   /director-ariles-de-tizi.html  301
-/directors/chris-cuseo      /director-chris-cuseo.html     301
-/directors/lordface         /director-lordface.html        301
-/randomz                    /backstage.html                301
-/randomz/2016-fabric        /backstage-fabric-london.html  301
-/randomz/elle-bts           /backstage-elle-bts.html       301
-/contact                    /contact.html                  301
+/home                       /                          301
 
-# Google Sites lowercases and hyphenates; catch the stragglers.
-/directors/*                /directors.html                301
-/randomz/*                  /backstage.html                301
+/directors/mr-pinoux        /director-mr-pinoux        301
+/directors/ariles-de-tizi   /director-ariles-de-tizi   301
+/directors/chris-cuseo      /director-chris-cuseo      301
+/directors/lordface         /director-lordface         301
+
+/randomz                    /backstage                 301
+/randomz/2016-fabric        /backstage-fabric-london   301
+/randomz/elle-bts           /backstage-elle-bts        301
+
+# Catch anything else that lived under those two sections.
+/directors/*                /directors                 301
+/randomz/*                  /backstage                 301
