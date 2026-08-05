@@ -286,9 +286,13 @@
    * row here — the markup is generated.
    * -------------------------------------------------------------------------- */
 
+  // West to east. The label is free text; the tz must be an IANA zone name,
+  // which is what keeps daylight saving right without a table to maintain.
   var CLOCKS = [
     { city: "Los Angeles", tz: "America/Los_Angeles" },
-    { city: "Paris",       tz: "Europe/Paris" }
+    { city: "New York",    tz: "America/New_York" },
+    { city: "Paris",       tz: "Europe/Paris" },
+    { city: "Bangkok",     tz: "Asia/Bangkok" }
   ];
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

@@ -390,6 +390,41 @@ h1.shead__title {
 .work:hover .work__media,
 .work:focus-visible .work__media { filter: none; }
 
+/* Rollover. The frame never moves — only what is inside it. The still warms to
+   colour and pushes in, an accent rule wipes across the top edge, and the
+   caption steps aside. Transform and filter only, so no tile is re-measured
+   and the grid cannot shift under the pointer. */
+.work__media > img { transition: transform .6s var(--ease); }
+.work:hover .work__media > img,
+.work:focus-visible .work__media > img { transform: scale(1.055); }
+
+/* The rule lives on .work, not on .work__media — the media carries a
+   grayscale filter that would drain the accent out of it on the way in. */
+.work::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 2;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform .45s var(--ease);
+}
+.work:hover::before,
+.work:focus-visible::before { transform: scaleX(1); }
+
+/* Inline by default, and transforms do not apply to inline boxes. */
+.work__client { display: block; }
+.work__line,
+.work__client { transition: transform .45s var(--ease), color .2s var(--ease); }
+.work:hover .work__line,
+.work:focus-visible .work__line { transform: translateX(.32rem); }
+.work:hover .work__client,
+.work:focus-visible .work__client { transform: translateX(.32rem); transition-delay: .05s; }
+
 /* Play affordance for video items */
 .work[data-video] .work__media::after {
   content: "▶";
