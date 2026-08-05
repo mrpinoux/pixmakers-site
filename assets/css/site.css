@@ -328,6 +328,11 @@ h1.shead__title {
 .hero__dust {
   position: absolute;
   inset: 0;
+  /* A canvas is a replaced element: inset alone will not stretch it, it keeps
+     its intrinsic 300x150 and sits in the corner. These two are what make it
+     cover the hero. */
+  width: 100%;
+  height: 100%;
   z-index: 2;
   pointer-events: none;
 }

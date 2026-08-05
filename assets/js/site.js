@@ -478,10 +478,10 @@
      * Canvas rather than DOM nodes: a hundred elements appearing and dying
      * every second would thrash layout, and these never need to be hit-tested.
      */
-    var cs     = getComputedStyle(document.documentElement);
-    var ACCENT = (cs.getPropertyValue("--accent") || "#ff2e88").trim();
-    var PAPER  = (cs.getPropertyValue("--paper")  || "#f2f2f0").trim();
-    var MAX_MOTES = 110;
+    // The office palette from the footer clocks, reused here so the hero and
+    // the clocks speak the same four colours.
+    var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
+    var MAX_MOTES = 280;
 
     var canvas = document.createElement("canvas");
     canvas.className = "hero__dust";
@@ -492,8 +492,12 @@
     var motes = [];
 
     var cvW = 0, cvH = 0;
+    // Measured on the canvas, never on .hero. inset:0 resolves against the
+    // hero's padding box, and the hero carries a large padding-top — take the
+    // hero's rect instead and every mote lands one padding down and to the
+    // right of the letter that threw it.
     function sizeCanvas() {
-      var r = zone.getBoundingClientRect();
+      var r = canvas.getBoundingClientRect();
       var w = Math.max(1, Math.round(r.width  * dpr));
       var h = Math.max(1, Math.round(r.height * dpr));
       if (w === cvW && h === cvH) return;   // resizing clears the canvas
@@ -518,8 +522,9 @@
         s: Math.min(9, Math.round((1 + ((Math.random() * 3) | 0)) *
              (Math.random() < .22 ? 1.6 + Math.random() * 1.4 : 1))),
         life: 1,
-        fade: .024 + Math.random() * .022,
-        hot: Math.random() < .38                   // some carry the accent
+        // Slow: a mote lives roughly one to two and a half seconds.
+        fade: .007 + Math.random() * .009,
+        col: PALETTE[(Math.random() * PALETTE.length) | 0]
       });
     }
 
@@ -534,7 +539,7 @@
         m.life -= m.fade;
         if (m.life <= 0) { motes.splice(i, 1); continue; }
         ctx.globalAlpha = m.life;
-        ctx.fillStyle = m.hot ? ACCENT : PAPER;
+        ctx.fillStyle = m.col;
         ctx.fillRect(m.x | 0, m.y | 0, m.s, m.s);  // integer px, no smearing
       }
       ctx.globalAlpha = 1;
@@ -551,8 +556,9 @@
         c.h = r.height;
       });
       // Char centres are viewport-based; the canvas is not. Cache the offset
-      // here rather than reading it every frame.
-      zoneRect = zone.getBoundingClientRect();
+      // here rather than reading it every frame — and take it from the canvas,
+      // which is the surface being drawn on, not from its parent.
+      zoneRect = canvas.getBoundingClientRect();
       // And resize with it. Sized once at startup the backing store keeps the
       // pre-webfont dimensions while CSS stretches the element to the settled
       // ones — every coordinate then lands scaled, drifting further out the
@@ -590,7 +596,7 @@
         // is working rather than dusting the whole line evenly. The mote
         // starts somewhere inside that letter's own box, not at its centre.
         var mag = Math.abs(c.x) + Math.abs(c.y);
-        if (active && (tx || ty) && mag > 6 && Math.random() < Math.min(.32, mag / 85)) {
+        if (active && (tx || ty) && mag > 4 && Math.random() < Math.min(.6, mag / 42)) {
           shed(c.cx + c.x - zoneRect.left + (Math.random() - .5) * c.w,
                c.cy + c.y - zoneRect.top  + (Math.random() - .5) * c.h,
                c.x, c.y);
