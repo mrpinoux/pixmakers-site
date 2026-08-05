@@ -353,11 +353,16 @@ h1.shead__title {
 
 /* Scatter. site.js turns each letter into its own box so the pointer can shove
    it about; words stay whole, so lines break exactly where they did before.
-   Only transforms move — the title's own metrics never change. */
-.hero__title .wd { display: inline-block; white-space: nowrap; }
-.hero__title .ch { display: inline-block; will-change: transform; }
+   Only transforms move — the heading's own metrics never change. Applies to
+   any [data-scatter] heading, not just the hero. */
+[data-scatter] .wd { display: inline-block; white-space: nowrap; }
+[data-scatter] .ch { display: inline-block; will-change: transform; }
 /* It is a toy, not a text field — keep the arrow, not the I-beam. */
-.hero__title[data-scatter] { cursor: default; }
+[data-scatter] { cursor: default; }
+
+/* The block a scattering heading lives in hosts its dust canvas, so it has to
+   establish a containing block. Set by site.js, never in the markup. */
+.scatter-host { position: relative; }
 
 .hero__foot {
   display: flex;

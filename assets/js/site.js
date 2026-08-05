@@ -432,11 +432,7 @@
    * costs nothing. Skipped for coarse pointers and for reduced-motion.
    * -------------------------------------------------------------------------- */
 
-  (function () {
-    var title = document.querySelector("[data-scatter]");
-    if (!title || !window.matchMedia) return;
-    if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  function initScatter(title) {
 
     // Split to words first — a word is one unbreakable box — then to letters.
     var chars = [];
@@ -455,7 +451,7 @@
             ch.className = "ch";
             ch.textContent = c;
             wd.appendChild(ch);
-            chars.push({ el: ch, x: 0, y: 0, s: 1, cx: 0, cy: 0, w: 0, h: 0 });
+            chars.push({ el: ch, x: 0, y: 0, s: 1, cx: 0, cy: 0, w: 0, h: 0, col: "#fff" });
           });
           frag.appendChild(wd);
         });
@@ -464,14 +460,28 @@
     })(title);
     if (!chars.length) return;
 
-    var RADIUS = 250;   // px of influence around the pointer
-    var PUSH   = 68;    // px a letter travels at the very centre
-    var SCALE  = .52;   // extra size at the very centre, 1.52x
-    var EASE   = .16;   // per-frame approach to the target
+    // Whatever block the heading sits in becomes the canvas host. It has to be
+    // positioned for the canvas to sit over it, and the canvas has to be
+    // absolute so a grid or flex host does not treat it as an item.
+    var zone = title.closest(".hero, .shead, .dintro, .profile, .mag") ||
+               title.parentElement || title;
+    zone.classList.add("scatter-host");
+    var zoneRect = { left: 0, top: 0 };
+
+    // The hero runs at about 150px per letter; everything else is smaller, so
+    // scale the whole gesture by how big this heading actually is. Declared
+    // before the constants that multiply by it — var hoists the name but not
+    // the value, and 250 * undefined is NaN, which quietly kills every test
+    // against the radius.
+    var unit = parseFloat(getComputedStyle(title).fontSize) || 100;
+    var k    = Math.max(.32, Math.min(1, unit / 150));
+
+    var RADIUS = 250 * k;   // px of influence around the pointer
+    var PUSH   = 68 * k;    // px a letter travels at the very centre
+    var SCALE  = .52;       // extra size at the very centre, 1.52x
+    var EASE   = .16;       // per-frame approach to the target
 
     var px = 0, py = 0, active = false, running = false, dirty = true, idle;
-    var zone = title.closest(".hero") || title;
-    var zoneRect = { left: 0, top: 0 };
 
     /* Pixel dust. A shoved letter sheds square motes, thrown along the push —
      * the company is named for pixel manipulation, so the debris is literal.
@@ -530,8 +540,47 @@
       });
     }
 
-    function drawDust() {
+    /* Erosion. A letter under the pointer leaves a low-res copy of itself
+     * behind, at the spot it was shoved away from. The glyph is rendered once
+     * into a tiny offscreen canvas and blown back up with smoothing off, so
+     * what lands is genuinely aliased rather than blurred — and it coarsens
+     * the further the letter is pushed. Cached per glyph, size, block and
+     * colour: a handful of bitmaps for the whole heading.
+     */
+    var FAMILY = getComputedStyle(title).fontFamily;
+    var glyphs = {};
+
+    function glyph(ch, w, h, block, col) {
+      var key = ch + "|" + w + "|" + h + "|" + block + "|" + col;
+      if (glyphs[key]) return glyphs[key];
+      var lw = Math.max(2, Math.round(w / block));
+      var lh = Math.max(2, Math.round(h / block));
+      var g = document.createElement("canvas");
+      g.width = lw; g.height = lh;
+      var gx = g.getContext("2d");
+      // expanded ≈ the wdth 125 the heading runs at; canvas has no variation
+      // axes, so this is the closest the shorthand can get.
+      gx.font = "expanded 900 " + (lh * .82) + "px " + FAMILY;
+      gx.fillStyle = col;
+      gx.textAlign = "center";
+      gx.textBaseline = "middle";
+      gx.fillText(ch, lw / 2, lh / 2);
+      glyphs[key] = g;
+      return g;
+    }
+
+    function drawGhosts(list) {
+      for (var i = 0; i < list.length; i++) {
+        var g = list[i];
+        ctx.globalAlpha = g.a;
+        ctx.drawImage(glyph(g.ch, g.w, g.h, g.b, g.col), g.x, g.y, g.w, g.h);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawDust(ghosts) {
       ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      if (ghosts.length) drawGhosts(ghosts);
       for (var i = motes.length - 1; i >= 0; i--) {
         var m = motes[i];
         m.x += m.vx;
@@ -556,6 +605,7 @@
         c.cy = r.top + r.height / 2 - c.y;
         c.w = r.width;
         c.h = r.height;
+        c.col = getComputedStyle(c.el).color;
       });
       // Char centres are viewport-based; the canvas is not. Cache the offset
       // here rather than reading it every frame — and take it from the canvas,
@@ -571,6 +621,7 @@
 
     function frame() {
       var moving = false;
+      var ghosts = [];
       for (var i = 0; i < chars.length; i++) {
         var c = chars[i], tx = 0, ty = 0, ts = 1;
         if (active) {
@@ -598,6 +649,21 @@
         // is working rather than dusting the whole line evenly. The mote
         // starts somewhere inside that letter's own box, not at its centre.
         var mag = Math.abs(c.x) + Math.abs(c.y);
+
+        // The residue sits where the letter used to be, coarsening and
+        // strengthening with how far it has been driven off.
+        if (mag > 5) {
+          ghosts.push({
+            ch: c.el.textContent,
+            x: c.cx - c.w / 2 - zoneRect.left,
+            y: c.cy - c.h / 2 - zoneRect.top,
+            w: c.w, h: c.h,
+            b: Math.min(16, 4 + mag / 9) | 0,
+            a: Math.min(.5, mag / 110),
+            col: c.col
+          });
+        }
+
         if (active && (tx || ty) && mag > 4 && Math.random() < Math.min(.6, mag / 42)) {
           shed(c.cx + c.x - zoneRect.left + (Math.random() - .5) * c.w,
                c.cy + c.y - zoneRect.top  + (Math.random() - .5) * c.h,
@@ -605,7 +671,7 @@
         }
       }
 
-      drawDust();
+      drawDust(ghosts);
 
       if (moving || active || motes.length) requestAnimationFrame(frame);
       else running = false;
@@ -631,7 +697,13 @@
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () { dirty = true; });
     }
-  })();
+  }
+
+  if (window.matchMedia &&
+      matchMedia("(hover: hover) and (pointer: fine)").matches &&
+      !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll("[data-scatter]").forEach(initScatter);
+  }
 
   /* ---- Blur-up portraits --------------------------------------------------- *
    * The container carries --lqip, a 24px still of the photo. CSS paints it
