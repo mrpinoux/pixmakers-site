@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact — Pixmakers Factory</title>
+<meta name="description" content="Contact Pixmakers Factory in Los Angeles and Paris.">
+<link rel="canonical" href="https://pixmakers.com/contact.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Contact — Pixmakers Factory">
+<meta property="og:description" content="Two offices, one collective. Los Angeles and Paris.">
+<meta property="og:image" content="assets/img/og.jpg">
+<link rel="icon" href="assets/img/favicon.ico" sizes="32x32">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta name="theme-color" content="#0b0b0b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <a class="brand" href="index.html">Pixmakers<span>.</span>Factory</a>
+  <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu"><i></i></button>
+  <nav class="nav" id="nav" aria-label="Primary">
+    <a href="index.html">Home</a>
+    <a href="directors.html">Directors</a>
+    <a href="backstage.html">Backstage</a>
+    <a href="contact.html" aria-current="page">Contact</a>
+  </nav>
+</header>
+
+<main id="main">
+
+  <section class="section paper">
+    <div class="wrap">
+      <div class="shead">
+        <span class="num">✆</span>
+        <h1 class="shead__title">Contact</h1>
+        <p class="shead__aside" style="max-width:50ch">Two offices, one collective. Call whichever city is closest, or write to us.</p>
+      </div>
+
+      <div class="offices">
+
+        <div class="office">
+          <h2 class="office__city">Los Angeles</h2>
+          <ul>
+            <li>
+              <p class="who">Mr. Pinoux</p>
+              <a class="tel" href="tel:+19179139069">+1 (917) 913.9069</a>
+            </li>
+            <li>
+              <p class="who">Chris Cuseo</p>
+              <a class="tel" href="tel:+18312511133">+1 (831) 251.1133</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="office">
+          <h2 class="office__city">Paris</h2>
+          <ul>
+            <li>
+              <p class="who">LordFace</p>
+              <a class="tel" href="tel:+33618007312">+33 (0)6.18.00.73.12</a>
+            </li>
+            <li>
+              <p class="who">Vgtah</p>
+              <a class="tel" href="tel:+33611650031">+33 (0)6.11.65.00.31</a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="shead">
+        <span class="num">✉</span>
+        <h2 class="shead__title">Write to us</h2>
+        <p class="meta shead__aside">Production enquiries, quotes, artist submissions.</p>
+      </div>
+
+      <!-- Posts to Web3Forms — see WEB3FORMS_KEY in assets/js/site.js.
+           novalidate: site.js does the checking so the messages match the
+           rest of the page instead of the browser's default bubbles. -->
+      <form id="contactForm" class="cform" novalidate>
+        <div class="cf-row">
+          <label class="vh" for="cf-name">Your name</label>
+          <input id="cf-name" name="name" placeholder="Your name" autocomplete="name">
+
+          <label class="vh" for="cf-email">Your email</label>
+          <input id="cf-email" name="email" type="email" placeholder="Your email" autocomplete="email">
+        </div>
+
+        <!-- Honeypot. Real people never see it; bots fill it and get dropped. -->
+        <input name="website" class="cf-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+        <label class="vh" for="cf-msg">Your message</label>
+        <textarea id="cf-msg" name="message" rows="6" placeholder="Your message" required></textarea>
+
+        <button type="submit" class="cf-submit">Send message</button>
+        <p class="cf-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="meta" style="margin-top:2rem">
+        Or email <a href="mailto:pixmakers.factory@gmail.com" style="color:var(--accent)">pixmakers.factory@gmail.com</a>
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__grid">
+    <div>
+      <h3>Navigation</h3>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="directors.html">Directors</a></li>
+        <li><a href="backstage.html">Backstage</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Offices</h3>
+      <!-- Live analog clocks, one per office. Built by site.js. -->
+      <div data-clocks></div>
+    </div>
+    <div>
+      <h3>Get in touch</h3>
+      <ul>
+        <li><a href="mailto:pixmakers.factory@gmail.com">pixmakers.factory@gmail.com</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot__base">
+    <p class="meta">© <span data-year>2026</span> Pixmakers Factory. <span>All rights reserved.</span></p>
+    <p class="meta">Paris — Los Angeles</p>
+  </div>
+</footer>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Old Google Sites URLs -> new pages.
+# 301 = permanent, so search engines transfer the ranking instead of dropping
+# the old pages. Without this, every link that exists today 404s on launch.
+#
+# Format is Netlify's, and Cloudflare Pages reads the same file.
+# On Vercel use vercel.json "redirects"; on Apache use .htaccess.
+
+/home                       /                              301
+/directors                  /directors.html                301
+/directors/mr-pinoux        /director-mr-pinoux.html       301
+/directors/ariles-de-tizi   /director-ariles-de-tizi.html  301
+/directors/chris-cuseo      /director-chris-cuseo.html     301
+/directors/lordface         /director-lordface.html        301
+/randomz                    /backstage.html                301
+/randomz/2016-fabric        /backstage-fabric-london.html  301
+/randomz/elle-bts           /backstage-elle-bts.html       301
+/contact                    /contact.html                  301
+
+# Google Sites lowercases and hyphenates; catch the stragglers.
+/directors/*                /directors.html                301
+/randomz/*                  /backstage.html                301
