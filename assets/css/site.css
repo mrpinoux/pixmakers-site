@@ -321,6 +321,16 @@ h1.shead__title {
   background: linear-gradient(to top, var(--ink) 2%, transparent 55%);
 }
 .hero__inner { position: relative; z-index: 1; }
+
+/* Pixel dust, thrown off the letters by the scatter. Above the type so the
+   motes read as coming off it, and inert to the pointer so the scatter still
+   receives every move. Built by site.js; absent without it. */
+.hero__dust {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
 .hero__title {
   font-size: var(--t-mega);
   font-variation-settings: "wdth" 125, "wght" 900;
@@ -390,60 +400,74 @@ h1.shead__title {
 .work:hover .work__media,
 .work:focus-visible .work__media { filter: none; }
 
-/* Rollover. The frame never moves — only what is inside it. The still warms to
-   colour and pushes in, an accent rule wipes across the top edge, and the
-   caption steps aside. Transform and filter only, so no tile is re-measured
-   and the grid cannot shift under the pointer. */
-.work__media > img { transition: transform .6s var(--ease); }
+/* Rollover. The event belongs to the picture, not the caption: the still warms
+   to colour and pushes in behind a scrim, and the play mark snaps to size at
+   dead centre. Below, only a rule wipes under the title. Everything is
+   transform and opacity, so no tile is ever re-measured. */
+.work { isolation: isolate; }
+.work__media { z-index: 1; }
+.work__media > img { transition: transform .35s var(--ease); }
 .work:hover .work__media > img,
-.work:focus-visible .work__media > img { transform: scale(1.055); }
+.work:focus-visible .work__media > img { transform: scale(1.04); }
 
-/* The rule lives on .work, not on .work__media — the media carries a
-   grayscale filter that would drain the accent out of it on the way in. */
-.work::before {
+/* Scrim, so the play mark has something to sit on whatever the frame holds. */
+.work__media::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 2;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform .45s var(--ease);
+  inset: 0;
+  z-index: 1;
+  background: rgba(11, 11, 12, .38);
+  opacity: 0;
+  transition: opacity .2s var(--ease);
 }
-.work:hover::before,
-.work:focus-visible::before { transform: scaleX(1); }
+.work:hover .work__media::before,
+.work:focus-visible .work__media::before { opacity: 1; }
 
-/* Inline by default, and transforms do not apply to inline boxes. */
-.work__client { display: block; }
-.work__line,
-.work__client { transition: transform .45s var(--ease), color .2s var(--ease); }
-.work:hover .work__line,
-.work:focus-visible .work__line { transform: translateX(.32rem); }
-.work:hover .work__client,
-.work:focus-visible .work__client { transform: translateX(.32rem); transition-delay: .05s; }
-
-/* Play affordance for video items */
+/* Play mark. Overshoots slightly on the way in — that is what makes it snap
+   instead of fade. */
 .work[data-video] .work__media::after {
   content: "▶";
   position: absolute;
-  left: .85rem;
-  bottom: .7rem;
-  font-size: .7rem;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(3rem, 5.5vw, 4.25rem);
+  aspect-ratio: 1;
+  padding-left: .16em;              /* the glyph's own bearing is off-centre */
+  font-size: clamp(.95rem, 1.6vw, 1.3rem);
   line-height: 1;
-  padding: .45rem .5rem;
   background: var(--accent);
   color: var(--on-accent);
   opacity: 0;
-  transform: translateY(4px);
-  transition: opacity .25s var(--ease), transform .25s var(--ease);
+  transform: translate(-50%, -50%) scale(.68);
+  transition: opacity .16s var(--ease),
+              transform .3s cubic-bezier(.18, 1.6, .38, 1);
 }
 .work[data-video]:hover .work__media::after,
 .work[data-video]:focus-visible .work__media::after {
   opacity: 1;
-  transform: none;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* The whole tile jumps off-register, like a misprinted colour plate: it steps
+   up and left while a hard accent block stays behind, down and right. No blur,
+   no easing drift — .14s, and it has landed. Both transform and box-shadow, so
+   the grid never reflows and the block can overlap its neighbours. */
+.work {
+  z-index: 0;
+  transition: transform .14s var(--ease), box-shadow .14s var(--ease);
+}
+.work:hover,
+.work:focus-visible {
+  z-index: 3;
+  transform: translate(-7px, -7px);
+  box-shadow: 13px 13px 0 0 var(--accent), 0 0 0 1px var(--rule-dark);
+}
+.paper .work:hover,
+.paper .work:focus-visible {
+  box-shadow: 13px 13px 0 0 var(--accent), 0 0 0 1px var(--rule-light);
 }
 
 .work__line {
@@ -468,7 +492,8 @@ h1.shead__title {
   color: var(--on-dark-muted);
 }
 .paper .work__client { color: var(--on-light-muted); }
-.work:hover .work__title { color: var(--accent); }
+.work:hover .work__title,
+.work:focus-visible .work__title { color: var(--accent); }
 
 /* --- Director index (cast list) ------------------------------------------ */
 
@@ -1111,8 +1136,9 @@ h1.shead__title {
 .clk-h.hour { stroke-width: 3.4; }
 .clk-h.min  { stroke-width: 2.2; }
 /* The second hand is the one accent-coloured moving part on the page. */
-.clk-h.sec  { stroke: var(--accent); stroke-width: 1.1; }
-.clk-cap    { fill: var(--accent); }
+/* --tint is set per clock in site.js; the accent is the fallback. */
+.clk-h.sec  { stroke: var(--tint, var(--accent)); stroke-width: 1.1; }
+.clk-cap    { fill: var(--tint, var(--accent)); }
 .clk-city {
   font-family: var(--mono);
   font-size: .62rem;

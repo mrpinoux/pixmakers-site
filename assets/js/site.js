@@ -288,11 +288,14 @@
 
   // West to east. The label is free text; the tz must be an IANA zone name,
   // which is what keeps daylight saving right without a table to maintain.
+  // tint colours the second hand and the centre cap, so each office reads at a
+  // glance. Los Angeles keeps the site accent; the rest are the only places on
+  // the site allowed a second colour.
   var CLOCKS = [
-    { city: "Los Angeles", tz: "America/Los_Angeles" },
-    { city: "New York",    tz: "America/New_York" },
-    { city: "Paris",       tz: "Europe/Paris" },
-    { city: "Bangkok",     tz: "Asia/Bangkok" }
+    { city: "Los Angeles", tz: "America/Los_Angeles", tint: "#ff2e88" },
+    { city: "New York",    tz: "America/New_York",    tint: "#3ddcff" },
+    { city: "Paris",       tz: "Europe/Paris",        tint: "#ffc247" },
+    { city: "Bangkok",     tz: "Asia/Bangkok",        tint: "#7cf03d" }
   ];
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -335,7 +338,8 @@
     hosts.forEach(function (host) {
       host.className = "clocks";
       host.innerHTML = CLOCKS.map(function (c) {
-        return '<div class="clock">' + clockFace() +
+        var tint = c.tint ? ' style="--tint:' + c.tint + '"' : "";
+        return '<div class="clock"' + tint + ">" + clockFace() +
                '<span class="clk-city">' + c.city + "</span>" +
                '<span class="vh" data-clock-time></span></div>';
       }).join("");
@@ -451,7 +455,7 @@
             ch.className = "ch";
             ch.textContent = c;
             wd.appendChild(ch);
-            chars.push({ el: ch, x: 0, y: 0, cx: 0, cy: 0 });
+            chars.push({ el: ch, x: 0, y: 0, s: 1, cx: 0, cy: 0, w: 0, h: 0 });
           });
           frag.appendChild(wd);
         });
@@ -461,10 +465,80 @@
     if (!chars.length) return;
 
     var RADIUS = 250;   // px of influence around the pointer
-    var PUSH   = 34;    // px a letter travels at the very centre
+    var PUSH   = 68;    // px a letter travels at the very centre
+    var SCALE  = .52;   // extra size at the very centre, 1.52x
     var EASE   = .16;   // per-frame approach to the target
 
     var px = 0, py = 0, active = false, running = false, dirty = true, idle;
+    var zone = title.closest(".hero") || title;
+    var zoneRect = { left: 0, top: 0 };
+
+    /* Pixel dust. A shoved letter sheds square motes, thrown along the push —
+     * the company is named for pixel manipulation, so the debris is literal.
+     * Canvas rather than DOM nodes: a hundred elements appearing and dying
+     * every second would thrash layout, and these never need to be hit-tested.
+     */
+    var cs     = getComputedStyle(document.documentElement);
+    var ACCENT = (cs.getPropertyValue("--accent") || "#ff2e88").trim();
+    var PAPER  = (cs.getPropertyValue("--paper")  || "#f2f2f0").trim();
+    var MAX_MOTES = 110;
+
+    var canvas = document.createElement("canvas");
+    canvas.className = "hero__dust";
+    canvas.setAttribute("aria-hidden", "true");
+    zone.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var motes = [];
+
+    var cvW = 0, cvH = 0;
+    function sizeCanvas() {
+      var r = zone.getBoundingClientRect();
+      var w = Math.max(1, Math.round(r.width  * dpr));
+      var h = Math.max(1, Math.round(r.height * dpr));
+      if (w === cvW && h === cvH) return;   // resizing clears the canvas
+      cvW = canvas.width  = w;
+      cvH = canvas.height = h;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = false;    // squares stay square
+    }
+    sizeCanvas();
+
+    // Deliberately tight: the mote leaves along the push with only a little
+    // scatter, and dies quickly. The dust should read as coming off that one
+    // letter, not as weather across the whole hero.
+    function shed(x, y, dx, dy) {
+      if (motes.length >= MAX_MOTES) return;
+      motes.push({
+        x: x, y: y,
+        vx: dx * .09 + (Math.random() - .5) * .5,
+        vy: dy * .09 + (Math.random() - .5) * .5,
+        // 1–3 px is the base. Roughly a fifth come out oversized, up to 300%,
+        // so the dust has grain instead of reading as uniform noise.
+        s: Math.min(9, Math.round((1 + ((Math.random() * 3) | 0)) *
+             (Math.random() < .22 ? 1.6 + Math.random() * 1.4 : 1))),
+        life: 1,
+        fade: .024 + Math.random() * .022,
+        hot: Math.random() < .38                   // some carry the accent
+      });
+    }
+
+    function drawDust() {
+      ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      for (var i = motes.length - 1; i >= 0; i--) {
+        var m = motes[i];
+        m.x += m.vx;
+        m.y += m.vy;
+        m.vy += .014;                              // a whisper of gravity
+        m.vx *= .992;
+        m.life -= m.fade;
+        if (m.life <= 0) { motes.splice(i, 1); continue; }
+        ctx.globalAlpha = m.life;
+        ctx.fillStyle = m.hot ? ACCENT : PAPER;
+        ctx.fillRect(m.x | 0, m.y | 0, m.s, m.s);  // integer px, no smearing
+      }
+      ctx.globalAlpha = 1;
+    }
 
     // Resting centres. The live rect includes the current offset, so take it
     // back off — otherwise the anchors drift a little further every measure.
@@ -473,39 +547,64 @@
         var r = c.el.getBoundingClientRect();
         c.cx = r.left + r.width / 2 - c.x;
         c.cy = r.top + r.height / 2 - c.y;
+        c.w = r.width;
+        c.h = r.height;
       });
+      // Char centres are viewport-based; the canvas is not. Cache the offset
+      // here rather than reading it every frame.
+      zoneRect = zone.getBoundingClientRect();
+      // And resize with it. Sized once at startup the backing store keeps the
+      // pre-webfont dimensions while CSS stretches the element to the settled
+      // ones — every coordinate then lands scaled, drifting further out the
+      // further it is from the origin.
+      sizeCanvas();
       dirty = false;
     }
 
     function frame() {
       var moving = false;
       for (var i = 0; i < chars.length; i++) {
-        var c = chars[i], tx = 0, ty = 0;
+        var c = chars[i], tx = 0, ty = 0, ts = 1;
         if (active) {
           var dx = c.cx - px, dy = c.cy - py;
           var d = Math.sqrt(dx * dx + dy * dy) || .001;
           if (d < RADIUS) {
-            var f = 1 - d / RADIUS;
-            f = f * f * PUSH;                       // squared, so the falloff bites
-            tx = dx / d * f;
-            ty = dy / d * f;
+            var k = 1 - d / RADIUS;
+            k = k * k;                              // squared, so the falloff bites
+            tx = dx / d * k * PUSH;
+            ty = dy / d * k * PUSH;
+            ts = 1 + k * SCALE;                     // and it swells as it goes
           }
         }
         c.x += (tx - c.x) * EASE;
         c.y += (ty - c.y) * EASE;
-        if (Math.abs(c.x) > .05 || Math.abs(c.y) > .05) moving = true;
-        else { c.x = 0; c.y = 0; }
-        c.el.style.transform = (c.x || c.y)
-          ? "translate(" + c.x.toFixed(2) + "px," + c.y.toFixed(2) + "px)"
+        c.s += (ts - c.s) * EASE;
+        if (Math.abs(c.x) > .05 || Math.abs(c.y) > .05 || Math.abs(c.s - 1) > .002) moving = true;
+        else { c.x = 0; c.y = 0; c.s = 1; }
+        c.el.style.transform = (c.x || c.y || c.s !== 1)
+          ? "translate(" + c.x.toFixed(2) + "px," + c.y.toFixed(2) + "px) scale(" + c.s.toFixed(3) + ")"
           : "";
+
+        // Only letters genuinely under load shed, and the harder one is
+        // shoved the more it gives off — so the dust marks where the pointer
+        // is working rather than dusting the whole line evenly. The mote
+        // starts somewhere inside that letter's own box, not at its centre.
+        var mag = Math.abs(c.x) + Math.abs(c.y);
+        if (active && (tx || ty) && mag > 6 && Math.random() < Math.min(.32, mag / 85)) {
+          shed(c.cx + c.x - zoneRect.left + (Math.random() - .5) * c.w,
+               c.cy + c.y - zoneRect.top  + (Math.random() - .5) * c.h,
+               c.x, c.y);
+        }
       }
-      if (moving || active) requestAnimationFrame(frame);
+
+      drawDust();
+
+      if (moving || active || motes.length) requestAnimationFrame(frame);
       else running = false;
     }
 
     function start() { if (!running) { running = true; requestAnimationFrame(frame); } }
 
-    var zone = title.closest(".hero") || title;
     zone.addEventListener("mousemove", function (e) {
       if (dirty) measure();
       px = e.clientX; py = e.clientY;
@@ -519,7 +618,7 @@
       active = false; clearTimeout(idle); start();
     });
 
-    addEventListener("resize", function () { dirty = true; });
+    addEventListener("resize", function () { dirty = true; sizeCanvas(); });
     addEventListener("scroll", function () { dirty = true; }, { passive: true });
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () { dirty = true; });
