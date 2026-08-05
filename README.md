@@ -59,6 +59,8 @@ Three deliberate pieces, all transform-driven so nothing is ever re-measured:
   Skipped for touch and for reduced-motion, and the loop parks itself once
   everything is at rest. Remove the attribute to switch it off.
 - **Gallery grid** — hovering dims every frame but the one under the cursor.
+- **Blur-up portraits** — a director photo fades in over a blurred stand-in
+  instead of appearing in an empty frame. See below.
 
 `prefers-reduced-motion` zeroes every transition site-wide; the scatter checks
 it separately, since a JS transform is not a transition.
@@ -178,6 +180,32 @@ each director's own page.
 `site.js` removes any framed image that fails to load, so a missing file shows
 the placeholder rather than a broken-image icon. The site looks intentional
 while it is still being filled in.
+
+### Blur-up on the portraits
+
+Each `.profile__portrait` carries an inline `--lqip`: the photo shrunk to 24px
+wide, saved as WebP and inlined as a data URI — roughly 300 bytes. CSS paints
+it blown up and blurred behind the real `<img>`, which fades in over it once
+decoded. Nothing shifts, because the container already reserves its 4:5 box.
+
+Regenerate one after replacing a portrait:
+
+```python
+from PIL import Image, ImageFilter
+import io, base64
+im = Image.open('assets/img/directors/cuseo.jpg').convert('RGB')
+w, h = im.size
+small = im.resize((24, round(h * 24 / w)), Image.LANCZOS).filter(ImageFilter.GaussianBlur(.6))
+buf = io.BytesIO(); small.save(buf, 'WEBP', quality=45, method=6)
+print("data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode())
+```
+
+Paste the result into `style="--lqip:url('…')"` on that page's portrait div.
+Drop the attribute and the frame falls back to the diagonal pattern — `site.js`
+also strips it if the photo 404s, so a dead file never leaves a blurred ghost.
+
+The tiles are deliberately left out: they are lazy-loaded far below the fold,
+where there is nothing to smooth over.
 
 The hero runs on the diagonal-rule texture alone — no image. To use a still,
 put an `<img>` inside `.hero__bg` in `index.html`.

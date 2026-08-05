@@ -522,6 +522,29 @@
     }
   })();
 
+  /* ---- Blur-up portraits --------------------------------------------------- *
+   * The container carries --lqip, a 24px still of the photo. CSS paints it
+   * blurred behind the <img>; this only handles the fade, and only when the
+   * file has not already arrived — no point flashing a blur over a cached hit.
+   * -------------------------------------------------------------------------- */
+
+  document.querySelectorAll(".profile__portrait").forEach(function (box) {
+    var img = box.querySelector("img");
+    if (!img || !box.style.getPropertyValue("--lqip")) return;
+    if (img.complete && img.naturalWidth > 0) return;
+
+    box.classList.add("is-blur");
+    img.addEventListener("load", function () {
+      box.classList.remove("is-blur");
+    }, { once: true });
+    img.addEventListener("error", function () {
+      // No photo, no business showing a blurred ghost of it — fall back to the
+      // diagonal pattern the container already carries.
+      box.style.removeProperty("--lqip");
+      box.classList.remove("is-blur");
+    }, { once: true });
+  });
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {

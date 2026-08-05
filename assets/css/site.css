@@ -613,6 +613,24 @@ h1.shead__title {
   border: 1px solid var(--rule-dark);
 }
 
+/* Blur-up. --lqip carries a 24px-wide still of the photo as a data URI, around
+   300 bytes, set inline on the container. It is blown up and blurred to fill
+   the frame at once, then the real file fades over it. Nothing moves — the
+   container already reserves its 4/5 box; this only replaces the empty
+   diagonal pattern with something shaped like the picture. The negative inset
+   overscans so the blur has no soft edge against the border. */
+.profile__portrait::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  background-image: var(--lqip, none);
+  background-size: cover;
+  background-position: center;
+  filter: blur(14px);
+}
+.profile__portrait > img { transition: opacity .55s var(--ease); }
+.profile__portrait.is-blur > img { opacity: 0; }
+
 .profile__name {
   font-size: var(--t-xl);
   font-variation-settings: "wdth" 125, "wght" 900;
