@@ -241,9 +241,14 @@ At **OVH → pixmakers.com → DNS servers**, replace `ns14.ovh.net` and
 `dns14.ovh.net` with the Cloudflare pair. This takes anywhere from minutes to
 a few hours to take effect.
 
-Note this moves *all* DNS for the domain, including MX records. If any email
-runs on pixmakers.com, confirm the MX entries came across in Cloudflare's scan
-before you switch — that is the one thing that bites people here.
+This moves *all* DNS for the domain, not just the web records. The domain
+carries OVH mail records — `mx1.ovh.net`, `mx2.ovh.net`, `mxb.ovh.net`, plus
+`mail` and `ftp` subdomains — created by default with the OVH hosting. No
+mailbox is actually in use, but leave them alone: Cloudflare's scan picks them
+up, and keeping them costs nothing and covers any forgotten alias.
+
+Only two records should eventually be deleted, both pointing at Google:
+the `www` CNAME to `ghs.googlehosted.com` and the apex `A` to `213.186.33.87`.
 
 ### 5. Release the domain from Google Sites
 
