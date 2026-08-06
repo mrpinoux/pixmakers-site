@@ -927,6 +927,7 @@
     function launch(el, kind, out) {
       fronts.push({
         kind: kind,
+        out: out,                         // which way the shape is going
         r: el.getBoundingClientRect(),
         t0: performance.now(),
         dur: kind === "row" ? 420 : 190   // in step with the CSS transitions
