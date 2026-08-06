@@ -555,7 +555,8 @@
         // a burst of motes wink out together; this staggers them.
         life: 1 + Math.random() * .9,
         fade: .010 * (.4 + Math.random() * 2.4),
-        col: PALETTE[(Math.random() * PALETTE.length) | 0]
+        col: col || PALETTE[(Math.random() * PALETTE.length) | 0],
+        calm: !!calm
       });
     }
 
@@ -855,19 +856,20 @@
     // the accent does rather than drifting out of step with it.
     function ease(t) { return 1 - Math.pow(1 - t, 3); }
 
-    function add(x, y, vx, vy) {
+    function add(x, y, vx, vy, col, calm) {
       if (motes.length >= MAX) return;
       motes.push({
         x: x, y: y,
         vx: vx + (Math.random() - .5) * .8,
         vy: vy + (Math.random() - .5) * .8,
-        s: Math.random() < .7 ? 2 + ((Math.random() * 5) | 0)
-                              : 1 + ((Math.random() * 2) | 0),
+        // Chunky rather than confetti: fewer, bigger, gone quicker.
+        s: 5 + ((Math.random() * 8) | 0),
         // The hold is the delay: a mote sits at full strength for a spell
         // before it starts to fade, so the wave frays instead of vanishing.
-        life: 1 + Math.random() * .9,
-        fade: .016 * (.4 + Math.random() * 2.4),
-        col: PALETTE[(Math.random() * PALETTE.length) | 0]
+        life: 1 + Math.random() * .35,
+        fade: .034 * (.5 + Math.random() * 1.8),
+        col: col || PALETTE[(Math.random() * PALETTE.length) | 0],
+        calm: !!calm
       });
     }
 
@@ -885,22 +887,35 @@
           // grows from the left going in, and collapses to the right coming
           // out. Pixels are shoved ahead of it.
           var ex = fr.out ? r.left + r.width * p : r.left + r.width * p;
-          for (var i = 0; i < 3; i++) {
+          // On the way out the fill is what is leaving, so the pixels it
+          // sheds are its own colour rather than the whole palette.
+          var rc = fr.out ? PALETTE[0] : null;
+          for (var i = 0; i < 2; i++) {
+            if (Math.random() < .25) continue;
             add(ex + (Math.random() - .5) * 10,
                 r.top + Math.random() * r.height,
-                1.6 + Math.random() * 2.2, (Math.random() - .5) * 1.2);
+                2.6 + Math.random() * 3.4, (Math.random() - .5) * 1.6, rc);
           }
         } else {
           // The tile steps up and left; the accent is uncovered along its
           // right and bottom edges, and the pixels go the other way.
           var d = fr.out ? -1 : 1;
-          for (var j = 0; j < 2; j++) {
-            add(r.right - 7 + Math.random() * 14,
+          // Leaving, the accent block is what is being covered again: its own
+          // colour, barely any travel, and they bank up along the two edges
+          // it occupied rather than flying off them.
+          var tc = fr.out ? PALETTE[0] : null;
+          var sp = fr.out ? .28 : 1;
+          if (Math.random() < .5) {
+            add(r.right - 7 + Math.random() * 16,
                 r.top + Math.random() * r.height,
-                d * (1.1 + Math.random() * 1.6), d * (.3 + Math.random() * .7));
+                d * sp * (1.9 + Math.random() * 2.4),
+                d * sp * (.5 + Math.random() * 1.1), tc, fr.out);
+          }
+          if (Math.random() < .5) {
             add(r.left + Math.random() * r.width,
-                r.bottom - 7 + Math.random() * 14,
-                d * (.3 + Math.random() * .7), d * (1.1 + Math.random() * 1.6));
+                r.bottom - 7 + Math.random() * 16,
+                d * sp * (.5 + Math.random() * 1.1),
+                d * sp * (1.9 + Math.random() * 2.4), tc, fr.out);
           }
         }
       }
@@ -910,8 +925,14 @@
       for (var k = motes.length - 1; k >= 0; k--) {
         var m = motes[k];
         m.x += m.vx; m.y += m.vy;
-        m.vy += .012;
-        m.vx *= .99;
+        if (m.calm) {
+          // Settling, not scattering: no gravity and heavy damping, so these
+          // pile up in the band they were thrown into and stay there.
+          m.vx *= .86; m.vy *= .86;
+        } else {
+          m.vy += .012;
+          m.vx *= .99;
+        }
         m.life -= m.fade;
         if (m.life <= 0) { motes.splice(k, 1); continue; }
         cx.globalAlpha = m.life > 1 ? 1 : m.life;   // the hold, then the fade
@@ -1130,6 +1151,96 @@
           if (falling.length && !running) { running = true; requestAnimationFrame(fall); }
         }
       });
+    });
+  })();
+
+  /* ---- Images resolve out of a mosaic -------------------------------------- *
+   * A picture arrives coarse and steps down to itself — 24px cells, then 12, 6,
+   * 3, then gone. Framed media only, where the container already reserves the
+   * space, so nothing moves while it happens.
+   *
+   * The veil is drawn from the image itself, so there is no second file to
+   * fetch and nothing to keep in sync. It only runs for pictures that are on
+   * screen when they land: one that loaded far below the fold has nothing to
+   * reveal by the time you reach it, and the canvas is thrown away after.
+   * -------------------------------------------------------------------------- */
+
+  (function () {
+    if (!window.matchMedia || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    var STEPS = [24, 12, 6, 3];
+    var HOLD  = 90;     // ms per step
+    var SEL   = ".work__media > img, .card__media > img, .shot > img, .mosaic figure > img";
+
+    function resolve(img) {
+      var host = img.parentElement;
+      if (!host || img.dataset.pxDone) return;
+      img.dataset.pxDone = "1";
+
+      var b = img.getBoundingClientRect();
+      if (!b.width || !b.height || !img.naturalWidth) return;
+
+      var cv = document.createElement("canvas");
+      cv.className = "px-load";
+      cv.setAttribute("aria-hidden", "true");
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width  = Math.max(1, Math.round(b.width * dpr));
+      cv.height = Math.max(1, Math.round(b.height * dpr));
+      var cx = cv.getContext("2d");
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.imageSmoothingEnabled = false;
+
+      var off = document.createElement("canvas"), ox = off.getContext("2d");
+      // object-fit: cover, matched, or the mosaic sits out of register with
+      // the photograph it is standing in for.
+      var ir = img.naturalWidth / img.naturalHeight, br = b.width / b.height;
+      var sw = ir > br ? img.naturalHeight * br : img.naturalWidth;
+      var sh = ir > br ? img.naturalHeight : img.naturalWidth / br;
+      var sx = (img.naturalWidth - sw) / 2, sy = (img.naturalHeight - sh) / 2;
+
+      function paint(block) {
+        var lw = Math.max(2, Math.round(b.width / block));
+        var lh = Math.max(2, Math.round(b.height / block));
+        off.width = lw; off.height = lh;
+        ox.imageSmoothingEnabled = true;
+        ox.drawImage(img, sx, sy, sw, sh, 0, 0, lw, lh);
+        cx.clearRect(0, 0, b.width, b.height);
+        cx.drawImage(off, 0, 0, b.width, b.height);
+      }
+
+      paint(STEPS[0]);
+      // The veil is absolutely positioned, so its host has to be the
+      // containing block. A figure in the article mosaic is not positioned,
+      // and the canvas escaped to the section — filling the viewport.
+      if (getComputedStyle(host).position === "static") host.style.position = "relative";
+      host.appendChild(cv);
+
+      var i = 0;
+      (function step() {
+        i++;
+        if (i >= STEPS.length) {
+          cv.style.transition = "opacity .18s var(--ease, ease)";
+          cv.style.opacity = "0";
+          setTimeout(function () { cv.remove(); }, 220);
+          return;
+        }
+        paint(STEPS[i]);
+        setTimeout(step, HOLD);
+      })();
+      setTimeout(function () {}, 0);
+    }
+
+    var io = window.IntersectionObserver && new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        if (e.target.complete && e.target.naturalWidth) resolve(e.target);
+        else e.target.addEventListener("load", function () { resolve(e.target); }, { once: true });
+      });
+    }, { rootMargin: "0px" });
+
+    document.querySelectorAll(SEL).forEach(function (img) {
+      if (io) io.observe(img);
     });
   })();
 
