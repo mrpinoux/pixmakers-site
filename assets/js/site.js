@@ -967,6 +967,127 @@
     }, { once: true });
   });
 
+  /* ---- Mosaic veil on the portraits ---------------------------------------- *
+   * The portrait sits mosaicked. The pointer opens a soft-edged disc in the
+   * mosaic and the real photograph shows through it — the veil is what gets
+   * erased, so the sharp image underneath is the untouched <img>, not a
+   * redraw. The hole closes slowly when the pointer leaves; a little decay,
+   * so the image resolves and dissolves rather than switching.
+   * -------------------------------------------------------------------------- */
+
+  (function () {
+    if (!window.matchMedia) return;
+    if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    var BLOCK = 13;    // px per mosaic cell at rest
+    var HOLE  = 108;   // radius of the sharp disc
+
+    document.querySelectorAll(".profile__portrait").forEach(function (box) {
+      var img = box.querySelector("img");
+      if (!img) return;
+
+      var cv = document.createElement("canvas");
+      cv.className = "px-veil";
+      cv.setAttribute("aria-hidden", "true");
+      box.appendChild(cv);
+      var cx = cv.getContext("2d");
+      var off = document.createElement("canvas");
+      var ox = off.getContext("2d");
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      var w = 0, h = 0, r = 0, tr = 0, mx = 0, my = 0, running = false, ready = false;
+      var lw = 0, lh = 0, noise = null;
+
+      function size() {
+        var b = cv.getBoundingClientRect();
+        var nw = Math.max(1, Math.round(b.width * dpr));
+        var nh = Math.max(1, Math.round(b.height * dpr));
+        if (nw === cv.width && nh === cv.height) return;
+        cv.width = nw; cv.height = nh;
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx.imageSmoothingEnabled = false;   // the upscale is the whole point
+        w = b.width; h = b.height;
+      }
+
+      // The <img> is object-fit: cover, so the canvas has to crop the same way
+      // or the mosaic would sit out of register with the photo beneath it.
+      function mosaic() {
+        lw = Math.max(2, Math.round(w / BLOCK));
+        lh = Math.max(2, Math.round(h / BLOCK));
+        // A fixed value per cell. Rolled fresh every frame the edge would
+        // boil; rolled once, the hole has a ragged but steady bite.
+        noise = new Float32Array(lw * lh);
+        for (var n = 0; n < noise.length; n++) noise[n] = Math.random();
+        off.width = lw; off.height = lh;
+        ox.imageSmoothingEnabled = true;    // clean on the way down
+        var ir = img.naturalWidth / img.naturalHeight, br = w / h;
+        var sw = ir > br ? img.naturalHeight * br : img.naturalWidth;
+        var sh = ir > br ? img.naturalHeight : img.naturalWidth / br;
+        ox.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2,
+                     sw, sh, 0, 0, lw, lh);
+        ready = true;
+      }
+
+      function frame() {
+        r += (tr - r) * (tr > r ? .2 : .07);   // opens briskly, closes slowly
+        cx.clearRect(0, 0, w, h);
+        cx.drawImage(off, 0, 0, w, h);
+        if (r > 1 && noise) {
+          // Punch the hole a cell at a time, so its edge is made of the same
+          // blocks as the mosaic and comes out chewed rather than compass-drawn.
+          var cw = w / lw, chh = h / lh;
+          var i0 = Math.max(0, ((mx - r) / cw) | 0), i1 = Math.min(lw - 1, ((mx + r) / cw) | 0);
+          var j0 = Math.max(0, ((my - r) / chh) | 0), j1 = Math.min(lh - 1, ((my + r) / chh) | 0);
+          cx.globalCompositeOperation = "destination-out";
+          cx.fillStyle = "#000";
+          for (var j = j0; j <= j1; j++) {
+            for (var i = i0; i <= i1; i++) {
+              var dx = (i + .5) * cw - mx, dy = (j + .5) * chh - my;
+              var d = Math.sqrt(dx * dx + dy * dy);
+              var nz = noise[j * lw + i];
+              // Solid well inside; out at the rim each cell decides for itself
+              // how far it reaches and how much of it goes.
+              var edge = r * (.62 + .5 * nz);
+              if (d > edge) continue;
+              var k = d < r * .45 ? 1 : 1 - (d - r * .45) / (edge - r * .45 + .001);
+              cx.globalAlpha = Math.max(0, Math.min(1, k * (.55 + .45 * nz)));
+              cx.fillRect(i * cw, j * chh, cw + .5, chh + .5);
+            }
+          }
+          cx.globalAlpha = 1;
+          cx.globalCompositeOperation = "source-over";
+        }
+        if (Math.abs(tr - r) > .5) requestAnimationFrame(frame);
+        else { r = tr; running = false; }
+      }
+
+      function start() { if (!running) { running = true; requestAnimationFrame(frame); } }
+
+      function build() {
+        size();
+        if (!img.naturalWidth) return;
+        mosaic();
+        cx.clearRect(0, 0, w, h);
+        cx.drawImage(off, 0, 0, w, h);
+      }
+
+      if (img.complete && img.naturalWidth) build();
+      else img.addEventListener("load", build, { once: true });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
+      addEventListener("resize", function () { build(); });
+
+      box.addEventListener("mousemove", function (e) {
+        if (!ready) return;
+        var b = cv.getBoundingClientRect();
+        mx = e.clientX - b.left; my = e.clientY - b.top;
+        tr = HOLE;
+        start();
+      });
+      box.addEventListener("mouseleave", function () { tr = 0; start(); });
+    });
+  })();
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {
