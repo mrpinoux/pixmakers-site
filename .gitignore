@@ -14,3 +14,6 @@ desktop.ini
 _metadata-editor.html
 work-metadata.json
 WORK-METADATA.md
+_devserver.js
+work-metadata.json.bak
+_addwork.py
