@@ -1454,9 +1454,10 @@ h1.shead__title {
   display: block;
   width: min(100%, var(--shot-cap, 100%));
   height: auto;
-  /* Leaves the counter and the arrows clear on short screens. Clamping the
-     height re-derives the width, so the ratio holds. */
-  max-height: calc(100vh - clamp(6rem, 16vw, 10rem));
+  /* No max-height here. With an explicit width, clamping the height does NOT
+     re-derive the width — it squashes the picture. The height budget is folded
+     into --shot-cap by site.js instead, which caps the width so the image
+     fits vertically at its own ratio. */
 }
 
 /* Arrows, drawn from a rotated corner — no glyph, no icon font. Absent

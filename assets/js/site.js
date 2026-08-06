@@ -101,14 +101,19 @@
     lbFrame.innerHTML =
       '<img src="' + a.getAttribute("href") + '" alt="' + cap.replace(/"/g, "&quot;") + '">';
 
-    // The CSS wants a per-photo ceiling: 175% of the file's real width. Hidden
-    // until it is known, so nothing renders at the wrong size for a frame —
-    // the neighbours are already warm, so this is normally imperceptible.
+    // One ceiling on the width, carrying both limits: 175% of the file's real
+    // size, and whatever width still lets it fit the height available at its
+    // own ratio. Doing it here rather than with a max-height is the point —
+    // an explicit width plus a height clamp squashes the picture instead of
+    // scaling it. Hidden until measured, so nothing renders at the wrong size.
     var img = lbFrame.querySelector("img");
     img.style.visibility = "hidden";
     function sizeShot() {
       if (img.naturalWidth) {
-        img.style.setProperty("--shot-cap", Math.round(img.naturalWidth * 1.75) + "px");
+        var room = innerHeight - Math.min(160, Math.max(96, innerWidth * .16));
+        var byHeight = room * (img.naturalWidth / img.naturalHeight);
+        img.style.setProperty("--shot-cap",
+          Math.round(Math.min(img.naturalWidth * 1.75, byHeight)) + "px");
       }
       img.style.visibility = "";
     }

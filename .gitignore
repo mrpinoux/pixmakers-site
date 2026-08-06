@@ -9,3 +9,8 @@ desktop.ini
 *.swp
 
 # Nothing here is built — every file in this repo is served as-is.
+
+# Local metadata tool — never ships
+_metadata-editor.html
+work-metadata.json
+WORK-METADATA.md
