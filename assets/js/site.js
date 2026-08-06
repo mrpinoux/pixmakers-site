@@ -1255,6 +1255,21 @@
     });
   })();
 
+  /* ---- Section numerals become stacks of pixels ---------------------------- *
+   * 01, 02, 03 counted out in squares instead of set in digits — the index is
+   * the one place the site can say what it is made of without a caption. The
+   * digits stay in the markup for anyone listening rather than looking.
+   * -------------------------------------------------------------------------- */
+
+  document.querySelectorAll(".shead > .num").forEach(function (el) {
+    var n = parseInt((el.textContent || "").trim(), 10);
+    if (!n || n > 12) return;              // a range like "01 — 04" is left alone
+    el.classList.add("numstack");
+    el.setAttribute("aria-label", String(n));
+    el.innerHTML = '<span class="vh">' + el.textContent.trim() + "</span>" +
+                   new Array(n + 1).join('<i></i>');
+  });
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {

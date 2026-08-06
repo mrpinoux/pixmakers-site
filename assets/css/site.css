@@ -142,6 +142,22 @@ ul, ol { padding: 0; list-style: none; }
   color: var(--accent);
 }
 
+/* The section index, counted in squares. Bottom-up, so a growing index builds
+   a taller stack against the baseline of the title beside it. */
+.numstack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+  align-self: end;
+  padding-bottom: .18em;
+}
+.numstack i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+}
+
 /* --- Layout -------------------------------------------------------------- */
 
 .wrap {
@@ -325,15 +341,22 @@ h1.shead__title {
 }
 .hero__inner { position: relative; z-index: 1; }
 
-/* The creed. Sits under the rule with the strapline, set narrow and quiet —
-   it is there to be found by someone who lingers, not to compete with the
-   heading above it. */
+/* The creed. Quiet, but it takes the full measure — a narrow column parked at
+   the left of a wide hero left a dead half-page beside it. Two columns from
+   the width where a single one would run past a comfortable line length. */
 .hero__creed {
-  max-width: 62ch;
   margin-top: clamp(1.5rem, 3.5vw, 2.5rem);
   color: var(--on-dark-muted);
   font-size: var(--t-body);
   line-height: 1.7;
+  max-width: 68ch;
+}
+@media (min-width: 62rem) {
+  .hero__creed {
+    max-width: none;
+    columns: 2;
+    column-gap: clamp(2rem, 5vw, 4.5rem);
+  }
 }
 .hero__creed em { font-style: normal; color: var(--on-dark); }
 
