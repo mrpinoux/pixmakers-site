@@ -1016,6 +1016,7 @@
       var w = 0, h = 0, r = 0, tr = 0, mx = 0, my = 0, running = false, ready = false;
       var lw = 0, lh = 0, noise = null;
       var visible = false, last = 0;
+      var mdata = null, falling = [], gaps = [];
 
       function size() {
         var b = cv.getBoundingClientRect();
@@ -1044,6 +1045,9 @@
         var sh = ir > br ? img.naturalHeight : img.naturalWidth / br;
         ox.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2,
                      sw, sh, 0, 0, lw, lh);
+        // Kept so a falling pixel can take the exact colour of the cell it
+        // detached from, rather than an invented one.
+        mdata = ox.getImageData(0, 0, lw, lh).data;
         ready = true;
       }
 
@@ -1101,7 +1105,38 @@
           cx.globalAlpha = 1;
           cx.globalCompositeOperation = "source-over";
         }
-        if (Math.abs(tr - r) > .5 || visible) requestAnimationFrame(frame);
+        // The gap a detached pixel leaves. It heals as the pixel falls, so you
+        // see the cell come away rather than a square appearing from nowhere.
+        if (gaps.length) {
+          cx.globalCompositeOperation = "destination-out";
+          cx.fillStyle = "#000";
+          for (var gi = gaps.length - 1; gi >= 0; gi--) {
+            var gp = gaps[gi];
+            gp.life -= .022;
+            if (gp.life <= 0) { gaps.splice(gi, 1); continue; }
+            cx.globalAlpha = gp.life;
+            cx.fillRect(gp.x, gp.y, gp.s + .5, gp.s + .5);
+          }
+          cx.globalAlpha = 1;
+          cx.globalCompositeOperation = "source-over";
+        }
+
+        // Pixels shaken loose by the pointer, dropping straight down inside
+        // the frame. They carry the colour of the cell they came from, so they
+        // read as coming off the picture rather than being sprinkled onto it.
+        for (var fi = falling.length - 1; fi >= 0; fi--) {
+          var fp = falling[fi];
+          fp.y += fp.vy;
+          fp.vy += .22;
+          fp.life -= .012;
+          if (fp.life <= 0 || fp.y > h) { falling.splice(fi, 1); continue; }
+          cx.globalAlpha = fp.life > 1 ? 1 : fp.life;
+          cx.fillStyle = fp.col;
+          cx.fillRect(fp.x | 0, fp.y | 0, fp.s, fp.s);
+        }
+        cx.globalAlpha = 1;
+
+        if (Math.abs(tr - r) > .5 || visible || falling.length || gaps.length) requestAnimationFrame(frame);
         else { r = tr; running = false; }
       }
 
@@ -1125,6 +1160,29 @@
         var b = cv.getBoundingClientRect();
         mx = e.clientX - b.left; my = e.clientY - b.top;
         tr = HOLE;
+
+        // Shake a cell or two loose, from the rim of the patch rather than its
+        // middle — that is where the mosaic is still breaking up.
+        if (mdata && falling.length < 90) {
+          var cwd = w / lw, chd = h / lh;
+          for (var k = 0; k < 2; k++) {
+            if (Math.random() > .45) continue;
+            var ang = Math.random() * Math.PI * 2;
+            var rad = r * (.5 + Math.random() * .55);
+            var px2 = mx + Math.cos(ang) * rad, py2 = my + Math.sin(ang) * rad;
+            var ci = (px2 / cwd) | 0, cj = (py2 / chd) | 0;
+            if (ci < 0 || cj < 0 || ci >= lw || cj >= lh) continue;
+            var o = (cj * lw + ci) * 4;
+            gaps.push({ x: ci * cwd, y: cj * chd, s: cwd, life: 1 });
+            falling.push({
+              x: ci * cwd, y: cj * chd,
+              vy: .4 + Math.random() * 1.1,
+              s: Math.max(3, Math.round(cwd)),
+              life: 1 + Math.random() * .6,
+              col: "rgb(" + mdata[o] + "," + mdata[o + 1] + "," + mdata[o + 2] + ")"
+            });
+          }
+        }
         start();
       });
       box.addEventListener("mouseleave", function () { tr = 0; start(); });
