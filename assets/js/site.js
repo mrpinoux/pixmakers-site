@@ -481,7 +481,10 @@
     var SCALE  = .52;       // extra size at the very centre, 1.52x
     var EASE   = .16;       // per-frame approach to the target
 
-    var px = 0, py = 0, active = false, running = false, dirty = true, idle;
+    // active  — the pointer is inside the host, so the letters stay displaced
+    // stirring — it is also still moving, which is what sheds pixels
+    var px = 0, py = 0, active = false, stirring = false;
+    var running = false, dirty = true, idle;
 
     /* Pixel dust. A shoved letter sheds square motes, thrown along the push —
      * the company is named for pixel manipulation, so the debris is literal.
@@ -564,8 +567,18 @@
      * top of its smooth edges. Cached per glyph, size, block and colour.
      */
     var FAMILY = getComputedStyle(title).fontFamily;
-    var BACK   = (getComputedStyle(document.documentElement)
-                    .getPropertyValue("--ink") || "#0b0b0b").trim();
+    // The tile paints the backdrop as well as the glyph, so it has to be the
+    // backdrop this heading actually sits on. Hardcoding the dark ink put a
+    // black square around the letters on the paper sections.
+    var BACK = (function () {
+      var el = title;
+      while (el && el !== document.documentElement) {
+        var c = getComputedStyle(el).backgroundColor;
+        if (c && !/^(transparent|rgba\(0, 0, 0, 0\))$/.test(c)) return c;
+        el = el.parentElement;
+      }
+      return "#0b0b0b";
+    })();
     var glyphs = {};
 
     function glyph(ch, w, h, block, col, fs) {
@@ -744,7 +757,7 @@
           }
         }
 
-        if (active && (tx || ty) && mag > 4 && Math.random() < Math.min(.6, mag / 42)) {
+        if (stirring && (tx || ty) && mag > 4 && Math.random() < Math.min(.6, mag / 42)) {
           var ang = Math.random() * Math.PI * 2;
           var rad = Math.sqrt(Math.random()) * ERODE_R;
           shed(px - zoneRect.left + Math.cos(ang) * rad,
@@ -766,13 +779,15 @@
       if (dirty) measure();
       px = e.clientX; py = e.clientY;
       active = true;
+      stirring = true;
       clearTimeout(idle);
-      // The letters go home when the pointer stops, not when it leaves.
-      idle = setTimeout(function () { active = false; start(); }, 150);
+      // Only the dust stops when the pointer stops. The letters hold their
+      // displacement until it actually leaves the block.
+      idle = setTimeout(function () { stirring = false; start(); }, 140);
       start();
     });
     zone.addEventListener("mouseleave", function () {
-      active = false; clearTimeout(idle); start();
+      active = false; stirring = false; clearTimeout(idle); start();
     });
 
     addEventListener("resize", function () { dirty = true; sizeCanvas(); });
@@ -788,15 +803,20 @@
     document.querySelectorAll("[data-scatter]").forEach(initScatter);
   }
 
-  /* ---- Dust on rows and tiles ---------------------------------------------- *
-   * The same debris as the headings, thrown by the pointer as it crosses a
-   * director row or a work tile. One fixed canvas for the whole document —
-   * motes need to drift past the edge of whatever threw them, and a canvas
-   * inside the tile would clip them at the border.
+  /* ---- Dust off the accent shape ------------------------------------------- *
+   * Not a cursor toy. The pixels are thrown by the accent shape itself, so the
+   * motion has a cause you can see:
    *
-   * The throw follows the pointer's own travel, so a slow pass barely raises
-   * anything and a quick sweep kicks up a trail. Skipped for coarse pointers
-   * and reduced-motion, and the loop parks itself when the last mote dies.
+   *   Director rows — the fill wipes across, and its leading edge drags a wave
+   *   of pixels along with it, in and out again. Each mote picks up its own
+   *   delay and speed, so the wave has depth rather than moving as one line.
+   *
+   *   Work tiles — the tile jumps off-register and uncovers the accent block
+   *   down and to the right. The pixels are what the tile displaces: they are
+   *   thrown along the two revealed edges, away from the way the tile went.
+   *
+   * One fixed canvas for the document, since a mote has to be free to drift
+   * past the edge of whatever threw it.
    * -------------------------------------------------------------------------- */
 
   (function () {
@@ -804,13 +824,12 @@
     if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    // Every framed thing you can click: work tiles, director rows, backstage
-    // cards, and the contact-sheet frames in a post gallery.
-    var SEL = ".cast__row, a.work, a.card, a.shot";
-    if (!document.querySelector(SEL)) return;
+    var ROWS  = ".cast__row";
+    var TILES = "a.work";
+    if (!document.querySelector(ROWS) && !document.querySelector(TILES)) return;
 
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
-    var MAX = 220;
+    var MAX = 320;
 
     var cv = document.createElement("canvas");
     cv.className = "dust-layer";
@@ -818,67 +837,112 @@
     document.body.appendChild(cv);
     var cx = cv.getContext("2d");
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var w = 0, h = 0;
+    var cw = 0, ch = 0;
 
     function size() {
-      var nw = Math.round(innerWidth * dpr), nh = Math.round(innerHeight * dpr);
-      if (nw === w && nh === h) return;
-      w = cv.width = nw; h = cv.height = nh;
+      var w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+      if (w === cw && h === ch) return;
+      cw = cv.width = w; ch = cv.height = h;
       cx.setTransform(dpr, 0, 0, dpr, 0, 0);
       cx.imageSmoothingEnabled = false;
     }
     size();
     addEventListener("resize", size);
 
-    var motes = [], running = false, lx = null, ly = null;
+    var motes = [], fronts = [], running = false;
 
-    function frame() {
+    // Matches the CSS easing on both shapes, so the pixels ride the same curve
+    // the accent does rather than drifting out of step with it.
+    function ease(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function add(x, y, vx, vy) {
+      if (motes.length >= MAX) return;
+      motes.push({
+        x: x, y: y,
+        vx: vx + (Math.random() - .5) * .8,
+        vy: vy + (Math.random() - .5) * .8,
+        s: Math.random() < .7 ? 2 + ((Math.random() * 5) | 0)
+                              : 1 + ((Math.random() * 2) | 0),
+        // The hold is the delay: a mote sits at full strength for a spell
+        // before it starts to fade, so the wave frays instead of vanishing.
+        life: 1 + Math.random() * .9,
+        fade: .016 * (.4 + Math.random() * 2.4),
+        col: PALETTE[(Math.random() * PALETTE.length) | 0]
+      });
+    }
+
+    function tick(now) {
+      // --- fronts: the moving edges that are currently throwing pixels ------
+      for (var f = fronts.length - 1; f >= 0; f--) {
+        var fr = fronts[f];
+        var t = (now - fr.t0) / fr.dur;
+        if (t >= 1) { fronts.splice(f, 1); continue; }
+        var p = ease(t);
+        var r = fr.r;
+
+        if (fr.kind === "row") {
+          // The fill's leading edge, sweeping left to right either way: it
+          // grows from the left going in, and collapses to the right coming
+          // out. Pixels are shoved ahead of it.
+          var ex = fr.out ? r.left + r.width * p : r.left + r.width * p;
+          for (var i = 0; i < 3; i++) {
+            add(ex + (Math.random() - .5) * 10,
+                r.top + Math.random() * r.height,
+                1.6 + Math.random() * 2.2, (Math.random() - .5) * 1.2);
+          }
+        } else {
+          // The tile steps up and left; the accent is uncovered along its
+          // right and bottom edges, and the pixels go the other way.
+          var d = fr.out ? -1 : 1;
+          for (var j = 0; j < 2; j++) {
+            add(r.right - 7 + Math.random() * 14,
+                r.top + Math.random() * r.height,
+                d * (1.1 + Math.random() * 1.6), d * (.3 + Math.random() * .7));
+            add(r.left + Math.random() * r.width,
+                r.bottom - 7 + Math.random() * 14,
+                d * (.3 + Math.random() * .7), d * (1.1 + Math.random() * 1.6));
+          }
+        }
+      }
+
+      // --- the pixels themselves -------------------------------------------
       cx.clearRect(0, 0, innerWidth, innerHeight);
-      for (var i = motes.length - 1; i >= 0; i--) {
-        var m = motes[i];
+      for (var k = motes.length - 1; k >= 0; k--) {
+        var m = motes[k];
         m.x += m.vx; m.y += m.vy;
-        m.vy += .014;
-        m.vx *= .992;
+        m.vy += .012;
+        m.vx *= .99;
         m.life -= m.fade;
-        if (m.life <= 0) { motes.splice(i, 1); continue; }
+        if (m.life <= 0) { motes.splice(k, 1); continue; }
         cx.globalAlpha = m.life > 1 ? 1 : m.life;   // the hold, then the fade
         cx.fillStyle = m.col;
         cx.fillRect(m.x | 0, m.y | 0, m.s, m.s);
       }
       cx.globalAlpha = 1;
-      if (motes.length) requestAnimationFrame(frame);
+
+      if (motes.length || fronts.length) requestAnimationFrame(tick);
       else running = false;
     }
 
-    document.addEventListener("mousemove", function (e) {
-      // e.target is not always an Element — a move over the gaps between
-      // elements reports the document, which has no closest().
-      var hit = e.target && e.target.closest ? e.target.closest(SEL) : null;
-      var dx = lx === null ? 0 : e.clientX - lx;
-      var dy = ly === null ? 0 : e.clientY - ly;
-      lx = e.clientX; ly = e.clientY;
-      if (!hit) return;
+    function launch(el, kind, out) {
+      fronts.push({
+        kind: kind,
+        r: el.getBoundingClientRect(),
+        t0: performance.now(),
+        dur: kind === "row" ? 420 : 190   // in step with the CSS transitions
+      });
+      if (!running) { running = true; requestAnimationFrame(tick); }
+    }
 
-      // Speed sets the count: a still pointer raises nothing at all.
-      var speed = Math.hypot(dx, dy);
-      var n = Math.min(4, (speed / 9) | 0);
-      for (var i = 0; i < n && motes.length < MAX; i++) {
-        motes.push({
-          x: e.clientX + (Math.random() - .5) * 14,
-          y: e.clientY + (Math.random() - .5) * 14,
-          vx: dx * .10 + (Math.random() - .5) * .7,
-          vy: dy * .10 + (Math.random() - .5) * .7,
-          s: Math.random() < .7 ? 2 + ((Math.random() * 5) | 0)
-                                : 1 + ((Math.random() * 2) | 0),
-          life: 1 + Math.random() * .9,
-          fade: .016 * (.4 + Math.random() * 2.4),
-          col: PALETTE[(Math.random() * PALETTE.length) | 0]
-        });
-      }
-      if (motes.length && !running) { running = true; requestAnimationFrame(frame); }
-    }, { passive: true });
+    function wire(sel, kind) {
+      document.querySelectorAll(sel).forEach(function (el) {
+        el.addEventListener("mouseenter", function () { launch(el, kind, false); });
+        el.addEventListener("mouseleave", function () { launch(el, kind, true); });
+      });
+    }
+    wire(ROWS, "row");
+    wire(TILES, "tile");
   })();
-
   /* ---- Blur-up portraits --------------------------------------------------- *
    * The container carries --lqip, a 24px still of the photo. CSS paints it
    * blurred behind the <img>; this only handles the fade, and only when the
