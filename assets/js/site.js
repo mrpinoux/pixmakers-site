@@ -1485,7 +1485,11 @@
 
   /* ---- Year stamp -------------------------------------------------------- */
 
-  document.querySelectorAll("[data-year]").forEach(function (el) {
+  /* The empty value matters: `<span data-year>` is the footer marker asking to
+     be filled, while `data-year="2016"` on a work tile is data for the sort.
+     Selecting on [data-year] alone matches both and empties every dated tile
+     onto the floor. */
+  document.querySelectorAll('[data-year=""]').forEach(function (el) {
     el.textContent = String(new Date().getFullYear());
   });
 })();
