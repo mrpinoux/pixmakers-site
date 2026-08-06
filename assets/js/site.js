@@ -541,7 +541,7 @@
     // Deliberately tight: the mote leaves along the push with only a little
     // scatter, and dies quickly. The dust should read as coming off that one
     // letter, not as weather across the whole hero.
-    function shed(x, y, dx, dy) {
+    function shed(x, y, dx, dy, own) {
       if (motes.length >= MAX_MOTES) return;
       motes.push({
         x: x, y: y,
@@ -560,7 +560,11 @@
         // about in the frame.
         life: 1 + Math.random() * .5,
         fade: .022 * (.5 + Math.random() * 2),
-        col: PALETTE[(Math.random() * PALETTE.length) | 0]
+        // Mostly the colour of the letter it came off — white type throws
+        // white, the accent word throws accent — with the office palette
+        // salted through the rest so it does not go monochrome.
+        col: (own && Math.random() < .6) ? own
+                                         : PALETTE[(Math.random() * PALETTE.length) | 0]
       });
     }
 
@@ -769,7 +773,7 @@
           var rad = Math.sqrt(Math.random()) * ERODE_R;
           shed(px - zoneRect.left + Math.cos(ang) * rad,
                py - zoneRect.top  + Math.sin(ang) * rad,
-               c.x, c.y);
+               c.x, c.y, c.col);
         }
       }
 
