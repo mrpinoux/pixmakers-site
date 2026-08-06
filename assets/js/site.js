@@ -1005,6 +1005,8 @@
 
       var w = 0, h = 0, lw = 0, lh = 0;
       var noise = null, mdata = null, ready = false;
+      // How much veil each cell still has: 1 untouched, 0 rubbed through.
+      var remain = null;
       var falling = [], running = false;
 
       function build() {
@@ -1040,6 +1042,7 @@
         // once, every cell has its own steady appetite.
         noise = new Float32Array(lw * lh);
         for (var n = 0; n < noise.length; n++) noise[n] = Math.random();
+        remain = new Float32Array(lw * lh).fill(1);
 
         cx.clearRect(0, 0, w, h);
         cx.drawImage(off, 0, 0, w, h);
@@ -1094,6 +1097,9 @@
             if (al < .02) continue;              // not worth a draw call
             cx.globalAlpha = al;
             cx.fillRect(i * cw, j * chh, cw + .5, chh + .5);
+            // Mirror the compositing so we know, without reading the canvas
+            // back, how much of each cell is left.
+            remain[j * lw + i] *= (1 - al);
           }
         }
         cx.globalAlpha = 1;
@@ -1109,6 +1115,9 @@
             var ci = ((mx + Math.cos(ang) * rad) / cw) | 0;
             var cj = ((my + Math.sin(ang) * rad) / chh) | 0;
             if (ci < 0 || cj < 0 || ci >= lw || cj >= lh) continue;
+            // Nothing falls out of a patch already rubbed clear — there is no
+            // mosaic left there to come away.
+            if (remain[cj * lw + ci] < .45) continue;
             var o = (cj * lw + ci) * 4;
             falling.push({
               x: ci * cw, y: cj * chh,
