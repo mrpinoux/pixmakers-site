@@ -53,17 +53,42 @@ Three deliberate pieces, all transform-driven so nothing is ever re-measured:
 
 - **Director rows** — the accent fill wipes in from the left and out to the
   right, with the numeral, name, role and cue sliding in behind it.
-- **Hero scatter** — `data-scatter` on a heading makes `site.js` split it into
-  per-letter boxes; the pointer pushes nearby letters aside and they drift home
-  when it stops moving. Tune `RADIUS` (reach) and `PUSH` (travel) in `site.js`.
-  Skipped for touch and for reduced-motion, and the loop parks itself once
-  everything is at rest. Remove the attribute to switch it off.
+- **Scatter** — `data-scatter` on a heading makes `site.js` split it into
+  per-letter boxes; the pointer pushes nearby letters aside and swells them,
+  and they drift home when it stops moving. Where the pointer sits, that patch
+  of the heading goes low-res and sheds coloured pixels. See below.
 - **Gallery grid** — hovering dims every frame but the one under the cursor.
 - **Blur-up portraits** — a director photo fades in over a blurred stand-in
   instead of appearing in an empty frame. See below.
 
 `prefers-reduced-motion` zeroes every transition site-wide; the scatter checks
 it separately, since a JS transform is not a transition.
+
+### The scatter, in detail
+
+`data-scatter` goes on display headings only — the section titles, the roster
+intros, the director names, the post titles. Buttons and mono captions are left
+out on purpose: the gesture needs big type to read as anything but jitter.
+
+Each heading gets its own instance and two canvases in whatever block it sits
+in (`.hero`, `.shead`, `.dintro`, `.profile`, `.mag`), which `site.js` marks
+`.scatter-host`:
+
+| Layer | z-index | What it draws |
+| --- | --- | --- |
+| `.hero__dust` | 0 | the shed pixels, **under** the type |
+| the heading | 1 | the real letters |
+| `.hero__erode` | 3 | the low-res patch, **over** the type |
+
+The erosion tile carries the hero's backdrop as well as the glyph, so it can
+cover the smooth letter beneath rather than sit on its edges. Tiles are cached
+per glyph, size, block and colour.
+
+Knobs, all near the top of the module: `RADIUS` reach, `PUSH` travel, `SCALE`
+swell, `ERODE_R` patch size, `MAX_MOTES` ceiling. Each is multiplied by `k`,
+derived from the heading's own font size, so a 48px section head gets about a
+third of the hero's throw. The loop parks itself once everything is at rest,
+and the whole thing sits out touch and reduced-motion.
 
 ### Accent switcher
 

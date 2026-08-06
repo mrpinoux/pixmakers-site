@@ -493,11 +493,22 @@
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
     var MAX_MOTES = 280;
 
+    // Two surfaces over the same host: dust under the type, erosion over it.
+    // Both are created here, before sizeCanvas() runs — it writes to both, and
+    // a var declared further down is hoisted as undefined, which would throw
+    // on the very first call and take the whole instance with it.
     var canvas = document.createElement("canvas");
     canvas.className = "hero__dust";
     canvas.setAttribute("aria-hidden", "true");
     zone.appendChild(canvas);
     var ctx = canvas.getContext("2d");
+
+    var erode = document.createElement("canvas");
+    erode.className = "hero__erode";
+    erode.setAttribute("aria-hidden", "true");
+    zone.appendChild(erode);
+    var ex = erode.getContext("2d");
+
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var motes = [];
 
@@ -513,8 +524,11 @@
       if (w === cvW && h === cvH) return;   // resizing clears the canvas
       cvW = canvas.width  = w;
       cvH = canvas.height = h;
+      erode.width = w; erode.height = h;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ex.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.imageSmoothingEnabled = false;    // squares stay square
+      ex.imageSmoothingEnabled  = false;    // and the erosion stays stepped
     }
     sizeCanvas();
 
@@ -540,14 +554,16 @@
       });
     }
 
-    /* Erosion. A letter under the pointer leaves a low-res copy of itself
-     * behind, at the spot it was shoved away from. The glyph is rendered once
-     * into a tiny offscreen canvas and blown back up with smoothing off, so
-     * what lands is genuinely aliased rather than blurred — and it coarsens
-     * the further the letter is pushed. Cached per glyph, size, block and
-     * colour: a handful of bitmaps for the whole heading.
+    /* Erosion. Wherever the pointer passes over the type, that patch of it goes
+     * low-res: a disc of the heading is redrawn from a tiny offscreen bitmap
+     * blown back up with smoothing off, so the edges come out stepped rather
+     * than blurred. The tile carries the hero's own backdrop as well as the
+     * glyph, so it can cover the real letter underneath instead of sitting on
+     * top of its smooth edges. Cached per glyph, size, block and colour.
      */
     var FAMILY = getComputedStyle(title).fontFamily;
+    var BACK   = (getComputedStyle(document.documentElement)
+                    .getPropertyValue("--ink") || "#0b0b0b").trim();
     var glyphs = {};
 
     function glyph(ch, w, h, block, col) {
@@ -558,9 +574,11 @@
       var g = document.createElement("canvas");
       g.width = lw; g.height = lh;
       var gx = g.getContext("2d");
+      gx.fillStyle = BACK;
+      gx.fillRect(0, 0, lw, lh);
       // expanded ≈ the wdth 125 the heading runs at; canvas has no variation
       // axes, so this is the closest the shorthand can get.
-      gx.font = "expanded 900 " + (lh * .82) + "px " + FAMILY;
+      gx.font = "expanded 900 " + (h / block * .78) + "px " + FAMILY;
       gx.fillStyle = col;
       gx.textAlign = "center";
       gx.textBaseline = "middle";
@@ -569,18 +587,26 @@
       return g;
     }
 
-    function drawGhosts(list) {
+    // Radius of the pixelated disc, in step with everything else.
+    var ERODE_R = 78 * k;
+
+    function drawErosion(list) {
+      ex.clearRect(0, 0, erode.width / dpr, erode.height / dpr);
+      if (!list.length) return;
+      var cxp = px - zoneRect.left, cyp = py - zoneRect.top;
+      ex.save();
+      ex.beginPath();
+      ex.arc(cxp, cyp, ERODE_R, 0, Math.PI * 2);
+      ex.clip();
       for (var i = 0; i < list.length; i++) {
         var g = list[i];
-        ctx.globalAlpha = g.a;
-        ctx.drawImage(glyph(g.ch, g.w, g.h, g.b, g.col), g.x, g.y, g.w, g.h);
+        ex.drawImage(glyph(g.ch, g.w, g.h, g.b, g.col), g.x, g.y, g.w, g.h);
       }
-      ctx.globalAlpha = 1;
+      ex.restore();
     }
 
-    function drawDust(ghosts) {
+    function drawDust() {
       ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-      if (ghosts.length) drawGhosts(ghosts);
       for (var i = motes.length - 1; i >= 0; i--) {
         var m = motes[i];
         m.x += m.vx;
@@ -650,28 +676,36 @@
         // starts somewhere inside that letter's own box, not at its centre.
         var mag = Math.abs(c.x) + Math.abs(c.y);
 
-        // The residue sits where the letter used to be, coarsening and
-        // strengthening with how far it has been driven off.
-        if (mag > 5) {
-          ghosts.push({
-            ch: c.el.textContent,
-            x: c.cx - c.w / 2 - zoneRect.left,
-            y: c.cy - c.h / 2 - zoneRect.top,
-            w: c.w, h: c.h,
-            b: Math.min(16, 4 + mag / 9) | 0,
-            a: Math.min(.5, mag / 110),
-            col: c.col
-          });
+        // Anything the pointer disc touches is redrawn low-res, at its
+        // current position and current size. The block coarsens as the letter
+        // is driven further, so the patch degrades as it is worked.
+        if (active) {
+          var lw = c.w * c.s, lh = c.h * c.s;
+          var lx = c.cx + c.x, ly = c.cy + c.y;
+          if (Math.abs(lx - px) < ERODE_R + lw / 2 &&
+              Math.abs(ly - py) < ERODE_R + lh / 2) {
+            ghosts.push({
+              ch: c.el.textContent,
+              x: lx - lw / 2 - zoneRect.left,
+              y: ly - lh / 2 - zoneRect.top,
+              w: lw, h: lh,
+              b: Math.min(18, 6 + mag / 7) | 0,
+              col: c.col
+            });
+          }
         }
 
         if (active && (tx || ty) && mag > 4 && Math.random() < Math.min(.6, mag / 42)) {
-          shed(c.cx + c.x - zoneRect.left + (Math.random() - .5) * c.w,
-               c.cy + c.y - zoneRect.top  + (Math.random() - .5) * c.h,
+          var ang = Math.random() * Math.PI * 2;
+          var rad = Math.sqrt(Math.random()) * ERODE_R;
+          shed(px - zoneRect.left + Math.cos(ang) * rad,
+               py - zoneRect.top  + Math.sin(ang) * rad,
                c.x, c.y);
         }
       }
 
-      drawDust(ghosts);
+      drawErosion(ghosts);
+      drawDust();
 
       if (moving || active || motes.length) requestAnimationFrame(frame);
       else running = false;
