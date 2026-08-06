@@ -1667,6 +1667,61 @@ html[data-lang="fr"] [data-l="en"] { display: none !important; }
   body { background: #fff; color: #000; }
 }
 
+/* --- Navigation latérale ------------------------------------------------- *
+   Deux flèches collées aux bords de la fenêtre, fixes : on passe d'un
+   réalisateur au suivant sans remonter chercher un lien. Discrètes au repos
+   — c'est une sortie, pas une invitation — et franches au survol. Sur un
+   écran étroit elles mangeraient le texte : elles passent alors en bas, côte
+   à côte, où le pouce les trouve. */
+
+.sidenav__go {
+  position: fixed;
+  top: 50%;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 4.5rem;
+  transform: translateY(-50%);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--on-dark-muted);
+  background: rgba(11, 11, 11, .55);
+  backdrop-filter: blur(6px);
+  transition: color .18s var(--ease), background .18s var(--ease);
+}
+.sidenav__go--prev { left: 0; }
+.sidenav__go--next { right: 0; }
+.sidenav__go:hover,
+.sidenav__go:focus-visible {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .sidenav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 90;
+    display: flex;
+  }
+  .sidenav__go {
+    position: static;
+    flex: 1 1 50%;
+    width: auto;
+    height: 3rem;
+    transform: none;
+    border-top: 1px solid var(--rule-dark);
+  }
+  /* Une barre fixe en bas mange la fin de la page : on rend la hauteur au
+     pied de page, et seulement sur les pages qui portent la navigation. */
+  body:has(.sidenav) .foot { padding-bottom: 3.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidenav__go { transition: none; }
+}
+
 /* --- Barre de filtres : adaptations d'écran ------------------------------ *
    Placées en fin de feuille pour l'emporter sur les règles de base : une
    media query n'ajoute pas de spécificité, seulement de l'ordre. */
