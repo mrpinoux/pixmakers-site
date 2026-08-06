@@ -1057,6 +1057,25 @@
       });
     }
 
+    /* Un pixel qui tombe : pas de dérive latérale, une taille unique, et une
+       position arrondie au pas de la grille pour qu'ils s'alignent entre eux
+       au lieu de flotter. */
+    function fall(x, y, col, slow) {
+      if (motes.length >= MAX) return;
+      var s = 6;
+      motes.push({
+        x: Math.round(x / s) * s,
+        y: Math.round(y / s) * s,
+        vx: 0,
+        vy: (slow ? .35 : .9) + Math.random() * (slow ? .5 : 1.1),
+        s: s,
+        life: 1 + Math.random() * .3,
+        fade: .03 * (.6 + Math.random() * 1.1),
+        col: col || PALETTE[(Math.random() * PALETTE.length) | 0],
+        calm: false
+      });
+    }
+
     function tick(now) {
       // --- fronts: the moving edges that are currently throwing pixels ------
       for (var f = fronts.length - 1; f >= 0; f--) {
@@ -1079,25 +1098,22 @@
               r.top + Math.random() * r.height,
               2.6 + Math.random() * 3.4, (Math.random() - .5) * 1.6, PALETTE[0]);
         } else {
-          // The tile steps up and left; the accent is uncovered along its
-          // right and bottom edges, and the pixels go the other way.
-          var d = fr.out ? -1 : 1;
-          // Leaving, the accent block is what is being covered again: its own
-          // colour, barely any travel, and they bank up along the two edges
-          // it occupied rather than flying off them.
+          /* Une chute en grille, pas une gerbe. Les colonnes sont calées sur
+             un pas fixe et les pixels descendent droit : rien ne part de
+             côté, rien n'explose. Ils se détachent du haut de la tuile et
+             tombent, comme une image qui perd ses lignes. */
+          var STEP = 12;
+          var cols = Math.max(2, Math.round(r.width / STEP));
+          var gap  = r.width / cols;
+          // La couleur du départ : l'accent seul en sortie, la palette à
+          // l'arrivée — inchangé, seule la trajectoire change.
           var tc = fr.out ? PALETTE[0] : null;
-          var sp = fr.out ? .28 : 1;
-          if (Math.random() < .5) {
-            add(r.right - 7 + Math.random() * 16,
-                r.top + Math.random() * r.height,
-                d * sp * (1.9 + Math.random() * 2.4),
-                d * sp * (.5 + Math.random() * 1.1), tc, fr.out);
-          }
-          if (Math.random() < .5) {
-            add(r.left + Math.random() * r.width,
-                r.bottom - 7 + Math.random() * 16,
-                d * sp * (.5 + Math.random() * 1.1),
-                d * sp * (1.9 + Math.random() * 2.4), tc, fr.out);
+          for (var n = 0; n < 2; n++) {
+            if (Math.random() < .55) continue;
+            var col = (Math.random() * cols) | 0;
+            fall(r.left + col * gap,
+                 r.top + Math.random() * r.height * .4,
+                 tc, fr.out);
           }
         }
       }
