@@ -1459,6 +1459,40 @@ h1.shead__title {
  * Same grammar as the article mosaic, at thumbnail scale.
  * -------------------------------------------------------------------------- */
 
+/* Previous / index / next at the foot of a post. Three cells on one rule, so
+   leaving a post is a decision rather than a scroll back to the top. */
+.postnav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem clamp(1rem, 3vw, 2.5rem);
+  align-items: center;
+  margin-top: clamp(3rem, 7vw, 5rem);
+  padding-top: clamp(1.25rem, 3vw, 2rem);
+  border-top: 1px solid var(--rule-dark);
+}
+.postnav__side { display: grid; gap: .35rem; }
+.postnav__side--next { text-align: right; }
+.postnav__title {
+  font-variation-settings: "wdth" 118, "wght" 800;
+  text-transform: uppercase;
+  font-size: var(--t-md);
+  line-height: 1.05;
+  transition: color .18s var(--ease);
+}
+.postnav__side:hover .postnav__title { color: var(--accent); }
+.postnav__all { white-space: nowrap; }
+.postnav__all:hover { color: var(--accent); }
+@media (max-width: 640px) {
+  .postnav { grid-template-columns: 1fr 1fr; }
+  .postnav__all { grid-column: 1 / -1; order: 1; }
+}
+
+/* An article photograph, made openable by site.js. The anchor has to be
+   transparent to the mosaic's own sizing — the figure and its crop rules
+   expect the <img> as a direct child. */
+.shot-inline { display: block; }
+.shot-inline img { cursor: zoom-in; }
+
 .shots {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(clamp(7.5rem, 13vw, 12rem), 1fr));

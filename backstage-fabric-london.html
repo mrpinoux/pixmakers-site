@@ -582,8 +582,61 @@
                loading="lazy" width="400" height="267">
         </a>
       </div>
+
+      <!-- Previous and next, looping. With two posts they point at the same
+           place; the markup does not care how many there are. -->
+      <nav class="postnav" aria-label="Posts">
+        <a class="postnav__side" href="backstage-elle-bts.html" rel="prev">
+          <span class="meta">← Previous</span>
+          <span class="postnav__title">Elle — BTS</span>
+        </a>
+        <a class="postnav__all meta" href="backstage.html">All posts</a>
+        <a class="postnav__side postnav__side--next" href="backstage-elle-bts.html" rel="next">
+          <span class="meta">Next →</span>
+          <span class="postnav__title">Elle — BTS</span>
+        </a>
+      </nav>
     </article>
   </section>
+  <!-- Where to go from here. Same card as the Backstage index, so a reader
+       leaving one post lands in the same grammar they arrived through. -->
+  <section class="section paper">
+    <div class="wrap">
+      <div class="shead">
+        <span class="num">01</span>
+        <h2 class="shead__title" data-scatter>Keep reading</h2>
+        <p class="meta shead__aside">More from behind the camera.</p>
+      </div>
+
+      <div class="cards">
+        <a class="card" href="backstage-elle-bts.html">
+          <span class="card__media">
+            <img src="assets/img/backstage/elle/01.jpg" alt="" loading="lazy">
+          </span>
+          <span class="card__meta">
+            <span class="meta">Behind the scenes</span>
+            <span class="meta">18 April 2013</span>
+          </span>
+          <span class="card__title">Elle — BTS</span>
+          <span class="card__excerpt">Photo shoot for LOKO's “Elle” video on the forecourt at Trocadéro. The whole crew turned out, despite the freezing cold.</span>
+          <span class="card__more">Read the post →</span>
+        </a>
+
+        <a class="card" href="backstage.html">
+          <span class="card__media">
+            <img src="assets/img/backstage/fabric/02.jpg" alt="" loading="lazy">
+          </span>
+          <span class="card__meta">
+            <span class="meta">Index</span>
+          </span>
+          <span class="card__title">All posts</span>
+          <span class="card__excerpt">Shoots, sets and studio life, from behind the camera.</span>
+          <span class="card__more">See everything →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer class="foot">

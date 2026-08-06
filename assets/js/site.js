@@ -1355,6 +1355,26 @@
     render(subject ? subject.value : "");
   })();
 
+  /* ---- Post photographs join the lightbox ---------------------------------- *
+   * The pictures in an article body were the only framed images on the site
+   * you could not open. Wrapping them here rather than in the markup keeps
+   * both posts as plain <figure><img>, and puts them in the same set as the
+   * contact sheet below, so one walk covers the whole post.
+   * -------------------------------------------------------------------------- */
+
+  document.querySelectorAll(".mosaic figure > img").forEach(function (img) {
+    var src = img.getAttribute("src");
+    if (!src || img.closest("[data-shot]")) return;
+    var a = document.createElement("a");
+    a.className = "shot-inline";
+    a.href = src;
+    a.setAttribute("data-shot", "");
+    var cap = img.closest("figure").querySelector("figcaption");
+    if (cap) a.setAttribute("data-caption", cap.textContent.trim());
+    img.parentNode.insertBefore(a, img);
+    a.appendChild(img);
+  });
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {
