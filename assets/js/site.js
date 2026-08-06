@@ -14,9 +14,33 @@
    * the language changes.
    * -------------------------------------------------------------------------- */
 
+  /* Une valeur, deux libelles. La donnee reste en anglais — c'est ce que
+     portent les tuiles et ce sur quoi le filtre compare — et seule
+     l'etiquette du menu change de langue. Ce qui n'est pas ici s'affiche
+     tel quel : les noms de villes et la plupart des genres se disent
+     pareil dans les deux langues. */
+  var FR_LABEL = {
+    "Music video": "Clip",
+    "Commercial": "Publicité",
+    "Trailer": "Bande-annonce",
+    "Documentary": "Documentaire",
+    "Behind the scenes": "Coulisses",
+    "Short": "Court métrage",
+    "Interview": "Interview",
+    "Reel": "Reel",
+    "Live": "Live",
+    "Motion": "Motion",
+    "Fashion": "Mode",
+    "French rap": "Rap français",
+    "French pop": "Variété française",
+    "House old-school": "House old-school",
+    "Afro house": "Afro house"
+  };
+
   var LANG = "en";
   var langHooks = [];
   function T(en, fr) { return LANG === "fr" ? fr : en; }
+  function L(v) { return LANG === "fr" && FR_LABEL[v] ? FR_LABEL[v] : v; }
   function onLang(fn) { langHooks.push(fn); fn(); }
 
   /* ---- Mobile nav -------------------------------------------------------- */
@@ -841,6 +865,26 @@
 
     addEventListener("resize", function () { dirty = true; sizeCanvas(); });
     addEventListener("scroll", function () { dirty = true; }, { passive: true });
+
+    /* Changer de langue échange un titre contre un autre : les lettres
+       changent de place, et surtout de contenu — les glyphes que le canvas
+       dessine sont mis en cache par measure(). Marquer `dirty` ne suffit
+       pas : la boucle se gare dès que tout est immobile, donc personne ne
+       vient relire. Il faut la réveiller, une fois la nouvelle mise en page
+       arrêtée — deux frames, parce que le premier repaint suit le changement
+       d'attribut et le second la reprise du flux. */
+    onLang(function () {
+      /* Pas de requestAnimationFrame ici : un onglet en arrière-plan n'en
+         reçoit pas, et le titre resterait mesuré dans l'autre langue jusqu'au
+         retour de l'utilisateur. Un minuteur part dans tous les cas. Trois
+         passes — maintenant, après le recalcul de mise en page, puis une fois
+         les polices posées — parce que la hauteur du bloc change en deux
+         temps et qu'une seule mesure attrape la mauvaise. */
+      var sync = function () { dirty = true; sizeCanvas(); measure(); start(); };
+      sync();
+      setTimeout(sync, 0);
+      setTimeout(sync, 250);
+    });
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () { dirty = true; });
     }
@@ -1486,13 +1530,21 @@
     var styles = values("data-style");
     var locs   = values("data-loc");
 
-    function artistOf(t) {
+    /* Une ligne de crédit porte souvent plusieurs noms — « Prost / 4thsex »,
+       « Loko & Chris Taylor », « Loko ft. BR Crew ». Comparer la ligne entière
+       fabriquait une entrée par combinaison, et chercher 4thsex ne sortait que
+       le film où il est seul. On découpe, donc chaque artiste existe une fois
+       et un film partagé répond aux deux. */
+    function artistsOf(t) {
       var c = t.querySelector(".work__client");
-      return c ? c.textContent.trim() : "";
+      if (!c) return [];
+      return c.textContent.split(/\s*(?:\/|&|,|feat\.|ft\.)\s*/i)
+              .map(function (x) { return x.trim(); })
+              .filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     }
     var artists = (function () {
       var seen = {};
-      tiles.forEach(function (t) { var a = artistOf(t); if (a) seen[a] = 1; });
+      tiles.forEach(function (t) { artistsOf(t).forEach(function (a) { seen[a] = 1; }); });
       return Object.keys(seen).sort(function (a, b) {
         return a.localeCompare(b, undefined, { sensitivity: "base" });
       });
@@ -1500,7 +1552,9 @@
 
     function options(list, label) {
       return '<option value="">' + label + "</option>" +
-             list.map(function (v) { return "<option>" + v + "</option>"; }).join("");
+             list.map(function (v) {
+               return '<option value="' + v + '">' + v + "</option>";
+             }).join("");
     }
 
     var bar = document.createElement("div");
@@ -1539,6 +1593,22 @@
         : T("Newest first", "Plus récents d’abord");
       clear.setAttribute("aria-label", T("Clear the filters", "Effacer les filtres"));
       clear.title = T("Clear the filters", "Effacer les filtres");
+
+      /* Seule l'etiquette bouge : la valeur reste celle de la tuile, donc
+         changer de langue ne perd pas le filtre en cours. */
+      [cat, sty, loc].forEach(function (sel) {
+        if (!sel) return;
+        var keep = sel.value;
+        var rest = [].slice.call(sel.options, 1);
+        rest.forEach(function (o) { o.text = L(o.value); });
+        /* Retrie sur ce qui est lu, pas sur la valeur : en français, un menu
+           classé selon les mots anglais met « Variété française » avant
+           « Rap français », ce qui n'a l'air de rien mais se remarque. */
+        rest.sort(function (a, b) {
+          return a.text.localeCompare(b.text, LANG, { sensitivity: "base" });
+        }).forEach(function (o) { sel.appendChild(o); });
+        sel.value = keep;
+      });
       apply();
     });
 
@@ -1557,7 +1627,7 @@
                  (!c || t.getAttribute("data-cat") === c) &&
                  (!st || t.getAttribute("data-style") === st) &&
                  (!lo || t.getAttribute("data-loc") === lo) &&
-                 (!a || artistOf(t) === a);
+                 (!a || artistsOf(t).indexOf(a) > -1);
         t.hidden = !ok;
         if (ok) shown++;
       });
