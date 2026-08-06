@@ -981,7 +981,24 @@
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     var BLOCK = 13;    // px per mosaic cell at rest
-    var HOLE  = 108;   // radius of the sharp disc
+    var HOLE  = 172;   // radius of the sharp patch
+
+    /* Value noise, smoothly interpolated — Perlin's cheap cousin, and enough
+     * for a field that drifts. No library, and it is deterministic, so the
+     * same cell reads the same value on every frame at a given time. */
+    function hash(x, y) {
+      var n = (x | 0) * 374761393 + (y | 0) * 668265263;
+      n = (n ^ (n >> 13)) * 1274126177;
+      return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+    }
+    function vnoise(x, y) {
+      var xi = Math.floor(x), yi = Math.floor(y);
+      var xf = x - xi, yf = y - yi;
+      var u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+      var a = hash(xi, yi),     b = hash(xi + 1, yi);
+      var c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+      return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+    }
 
     document.querySelectorAll(".profile__portrait").forEach(function (box) {
       var img = box.querySelector("img");
@@ -998,6 +1015,7 @@
 
       var w = 0, h = 0, r = 0, tr = 0, mx = 0, my = 0, running = false, ready = false;
       var lw = 0, lh = 0, noise = null;
+      var visible = false, last = 0;
 
       function size() {
         var b = cv.getBoundingClientRect();
@@ -1029,10 +1047,35 @@
         ready = true;
       }
 
-      function frame() {
+      function frame(now) {
+        // The idle field only needs to breathe, not to run at display rate.
+        if (now - last < 55 && Math.abs(tr - r) < .5) {
+          requestAnimationFrame(frame); return;
+        }
+        last = now;
         r += (tr - r) * (tr > r ? .2 : .07);   // opens briskly, closes slowly
         cx.clearRect(0, 0, w, h);
         cx.drawImage(off, 0, 0, w, h);
+
+        // Idle drift. A slow noise field lifts scattered cells just enough for
+        // the photograph to surface under them — the picture looks like it
+        // wants to resolve, which is the invitation to come and rub at it.
+        if (noise && r < HOLE * .9) {
+          var t = now / 5200;
+          var cwn = w / lw, chn = h / lh;
+          cx.globalCompositeOperation = "destination-out";
+          cx.fillStyle = "#000";
+          for (var jj = 0; jj < lh; jj++) {
+            for (var ii = 0; ii < lw; ii++) {
+              var nv = vnoise(ii * .22 + t, jj * .22 - t * .6);
+              if (nv < .68) continue;
+              cx.globalAlpha = ((nv - .68) / .32) * .5 * (1 - r / HOLE);
+              cx.fillRect(ii * cwn, jj * chn, cwn + .5, chn + .5);
+            }
+          }
+          cx.globalAlpha = 1;
+          cx.globalCompositeOperation = "source-over";
+        }
         if (r > 1 && noise) {
           // Punch the hole a cell at a time, so its edge is made of the same
           // blocks as the mosaic and comes out chewed rather than compass-drawn.
@@ -1058,7 +1101,7 @@
           cx.globalAlpha = 1;
           cx.globalCompositeOperation = "source-over";
         }
-        if (Math.abs(tr - r) > .5) requestAnimationFrame(frame);
+        if (Math.abs(tr - r) > .5 || visible) requestAnimationFrame(frame);
         else { r = tr; running = false; }
       }
 
@@ -1085,6 +1128,15 @@
         start();
       });
       box.addEventListener("mouseleave", function () { tr = 0; start(); });
+
+      // The drift costs a frame every 55ms, so only pay it while the portrait
+      // is actually on screen.
+      if (window.IntersectionObserver) {
+        new IntersectionObserver(function (es) {
+          visible = es[0].isIntersecting;
+          if (visible) start();
+        }, { rootMargin: "100px" }).observe(box);
+      } else { visible = true; start(); }
     });
   })();
 
