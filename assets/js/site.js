@@ -804,7 +804,9 @@
     if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    var SEL = ".cast__row, a.work";
+    // Every framed thing you can click: work tiles, director rows, backstage
+    // cards, and the contact-sheet frames in a post gallery.
+    var SEL = ".cast__row, a.work, a.card, a.shot";
     if (!document.querySelector(SEL)) return;
 
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
