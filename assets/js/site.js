@@ -825,7 +825,7 @@
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     var ROWS  = ".cast__row";
-    var TILES = "a.work";
+    var TILES = "a.work, a.card";
     if (!document.querySelector(ROWS) && !document.querySelector(TILES)) return;
 
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
