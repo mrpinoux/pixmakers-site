@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,16 +21,16 @@
 </head>
 <body>
 
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main"><span data-l="en">Skip to content</span><span data-l="fr">Aller au contenu</span></a>
 
 <header class="bar">
   <a class="brand" href="index.html">Pixmakers<span>.</span>Factory</a>
   <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu"><i></i></button>
   <nav class="nav" id="nav" aria-label="Primary">
-    <a href="index.html">Home</a>
-    <a href="directors.html" aria-current="page">Directors</a>
-    <a href="backstage.html">Backstage</a>
-    <a href="contact.html">Contact</a>
+    <a href="index.html"><span data-l="en">Home</span><span data-l="fr">Accueil</span></a>
+    <a href="directors.html" aria-current="page"><span data-l="en">Directors</span><span data-l="fr">Réalisateurs</span></a>
+    <a href="backstage.html"><span data-l="en">Backstage</span><span data-l="fr">Coulisses</span></a>
+    <a href="contact.html"><span data-l="en">Contact</span><span data-l="fr">Contact</span></a>
   </nav>
 </header>
 
@@ -39,7 +39,7 @@
   <section class="section">
     <div class="wrap">
       <p class="meta" style="margin-bottom:2rem">
-        <a href="directors.html">← All directors</a>
+        <a href="directors.html"><span data-l="en">← All directors</span><span data-l="fr">← Tous les réalisateurs</span></a>
       </p>
 
       <div class="profile">
@@ -54,7 +54,7 @@
 
           <!-- His own copy, as it was published on the directors index in 2013.
                Kept in his words rather than rewritten. -->
-          <div class="profile__bio">
+          <div class="profile__bio"><div data-l="en">
             <p>Jérôme Thomas, known as the man of the thousand faces that you
               will never see, because he is always behind the camera, on the
               phone or behind the computer. With such a name as Vgtah, it would
@@ -66,7 +66,17 @@
               experienced editor and a workaholic, he is at home with music
               videos, corporate and documentary film as much as with post
               production.</p>
-          </div>
+          </div><div data-l="fr">
+            <p>Jérôme Thomas, c’est un peu l’homme aux mille visages qu’on ne voit pourtant
+              jamais : toujours derrière la caméra, au téléphone ou au contrôle de ses
+              machines. Avec un blaze pareil, il ne peut être qu’une boule d’énergie, un
+              « kaméhaméha ».</p>
+            <p>Il décuple ses forces à coups de projets tournés autour de la musique, du
+              street art ou du sport. Ses années d’expérience lui permettent de s’adapter à
+              toutes les situations de tournage. Monteur expérimenté, c’est un boulimique
+              de travail qui gère aussi bien le clip que le corporate, le documentaire ou
+              la post-production.</p>
+          </div></div>
 
           <dl class="facts">
             <div><dt>Also known as</dt><dd>Jérôme Thomas</dd></div>
@@ -83,7 +93,7 @@
     <div class="wrap">
       <div class="shead">
         <span class="num">↳</span>
-        <h2 class="shead__title" data-scatter>Selected work</h2>
+        <h2 class="shead__title" data-scatter><span data-l="en">Selected work</span><span data-l="fr">Films choisis</span></h2>
       </div>
 
       <div class="sheet">
@@ -151,24 +161,24 @@
 <footer class="foot">
   <div class="foot__grid">
     <div>
-      <h3>Navigation</h3>
+      <h3><span data-l="en">Navigation</span><span data-l="fr">Navigation</span></h3>
       <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="directors.html">Directors</a></li>
-        <li><a href="backstage.html">Backstage</a></li>
-        <li><a href="contact.html">Contact</a></li>
+        <li><a href="index.html"><span data-l="en">Home</span><span data-l="fr">Accueil</span></a></li>
+        <li><a href="directors.html"><span data-l="en">Directors</span><span data-l="fr">Réalisateurs</span></a></li>
+        <li><a href="backstage.html"><span data-l="en">Backstage</span><span data-l="fr">Coulisses</span></a></li>
+        <li><a href="contact.html"><span data-l="en">Contact</span><span data-l="fr">Contact</span></a></li>
       </ul>
     </div>
     <div>
-      <h3>Offices</h3>
+      <h3><span data-l="en">Offices</span><span data-l="fr">Bureaux</span></h3>
       <!-- Live analog clocks, one per office. Built by site.js. -->
       <div data-clocks></div>
     </div>
   </div>
   <div class="foot__base">
-    <p class="meta">© 2009—<span data-year>2026</span> Pixmakers Factory. <span>All rights reserved.</span></p>
+    <p class="meta">© 2009—<span data-year>2026</span> Pixmakers Factory. <span><span data-l="en">All rights reserved.</span><span data-l="fr">Tous droits réservés.</span></span></p>
     <p class="meta">Paris — Los Angeles</p>
-    <p class="meta credit">Design &amp; build by
+    <p class="meta credit"><span data-l="en">Design &amp; build by</span><span data-l="fr">Design et développement</span>
       <a href="https://mr-pinoux.com" target="_blank" rel="noopener">
         <img src="assets/img/mrp-logo.png" alt="Mr Pinoux" width="120" height="60">
       </a>

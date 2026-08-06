@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,16 +21,16 @@
 </head>
 <body>
 
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main"><span data-l="en">Skip to content</span><span data-l="fr">Aller au contenu</span></a>
 
 <header class="bar">
   <a class="brand" href="index.html">Pixmakers<span>.</span>Factory</a>
   <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu"><i></i></button>
   <nav class="nav" id="nav" aria-label="Primary">
-    <a href="index.html">Home</a>
-    <a href="directors.html">Directors</a>
-    <a href="backstage.html">Backstage</a>
-    <a href="contact.html" aria-current="page">Contact</a>
+    <a href="index.html"><span data-l="en">Home</span><span data-l="fr">Accueil</span></a>
+    <a href="directors.html"><span data-l="en">Directors</span><span data-l="fr">Réalisateurs</span></a>
+    <a href="backstage.html"><span data-l="en">Backstage</span><span data-l="fr">Coulisses</span></a>
+    <a href="contact.html" aria-current="page"><span data-l="en">Contact</span><span data-l="fr">Contact</span></a>
   </nav>
 </header>
 
@@ -40,8 +40,8 @@
     <div class="wrap">
       <div class="shead">
         <span class="num">✆</span>
-        <h1 class="shead__title" data-scatter>Contact</h1>
-        <p class="shead__aside" style="max-width:50ch">Two offices, one collective. Call whichever city is closest, or write to us.</p>
+        <h1 class="shead__title" data-scatter><span data-l="en">Contact</span><span data-l="fr">Contact</span></h1>
+        <p class="shead__aside" style="max-width:50ch"><span data-l="en">Two offices, one collective. Call whichever city is closest, or write to us.</span><span data-l="fr">Deux bureaux, un seul collectif. Appelez la ville la plus proche, ou écrivez-nous.</span></p>
       </div>
 
       <div class="offices">
@@ -82,8 +82,8 @@
     <div class="wrap">
       <div class="shead">
         <span class="num">✉</span>
-        <h2 class="shead__title" data-scatter>Write to us</h2>
-        <p class="meta shead__aside">Production enquiries, quotes, artist submissions.</p>
+        <h2 class="shead__title" data-scatter><span data-l="en">Write to us</span><span data-l="fr">Écrivez-nous</span></h2>
+        <p class="meta shead__aside"><span data-l="en">Production enquiries, quotes, artist submissions.</span><span data-l="fr">Demandes de production, devis, candidatures d’artistes.</span></p>
       </div>
 
       <!-- Posts to Web3Forms — see WEB3FORMS_KEY in assets/js/site.js.
@@ -96,26 +96,30 @@
       <div class="ctabs" role="tablist" aria-label="What is this about">
         <button type="button" role="tab" aria-selected="true"
                 data-topic="Production enquiry"
-                data-prompt="The project, the dates, and roughly where it shoots.">Production</button>
+                data-prompt="The project, the dates, and roughly where it shoots."
+                data-prompt-fr="Le projet, les dates, et à peu près où ça tourne."><span data-l="en">Production</span><span data-l="fr">Production</span></button>
         <button type="button" role="tab" aria-selected="false"
                 data-topic="Quote request"
-                data-prompt="What you need, how long it runs, and when you need it by.">Get a quote</button>
+                data-prompt="What you need, how long it runs, and when you need it by."
+                data-prompt-fr="Ce qu’il vous faut, la durée, et pour quand."><span data-l="en">Get a quote</span><span data-l="fr">Demander un devis</span></button>
         <button type="button" role="tab" aria-selected="false"
                 data-topic="Artist submission"
-                data-prompt="Who you are, a link to your work, and what you are looking for.">Artist submission</button>
+                data-prompt="Who you are, a link to your work, and what you are looking for."
+                data-prompt-fr="Qui vous êtes, un lien vers votre travail, et ce que vous cherchez."><span data-l="en">Artist submission</span><span data-l="fr">Candidature artiste</span></button>
         <button type="button" role="tab" aria-selected="false"
                 data-topic="Something else"
-                data-prompt="Tell us what is on your mind.">Something else</button>
+                data-prompt="Tell us what is on your mind."
+                data-prompt-fr="Dites-nous ce que vous avez en tête."><span data-l="en">Something else</span><span data-l="fr">Autre chose</span></button>
       </div>
 
       <form id="contactForm" class="cform" novalidate>
         <input type="hidden" name="subject" value="Production enquiry">
         <div class="cf-row">
-          <label class="vh" for="cf-name">Your name</label>
-          <input id="cf-name" name="name" placeholder="Your name" autocomplete="name">
+          <label class="vh" for="cf-name"><span data-l="en">Your name</span><span data-l="fr">Votre nom</span></label>
+          <input id="cf-name" name="name" placeholder="Your name" data-ph-en="Your name" data-ph-fr="Votre nom" autocomplete="name">
 
-          <label class="vh" for="cf-email">Your email</label>
-          <input id="cf-email" name="email" type="email" placeholder="Your email" autocomplete="email">
+          <label class="vh" for="cf-email"><span data-l="en">Your email</span><span data-l="fr">Votre e-mail</span></label>
+          <input id="cf-email" name="email" type="email" placeholder="Your email" data-ph-en="Your email" data-ph-fr="Votre e-mail" autocomplete="email">
 
 
         </div>
@@ -128,10 +132,10 @@
         <!-- Honeypot. Real people never see it; bots fill it and get dropped. -->
         <input name="website" class="cf-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-        <label class="vh" for="cf-msg">Your message</label>
-        <textarea id="cf-msg" name="message" rows="6" placeholder="Your message" required></textarea>
+        <label class="vh" for="cf-msg"><span data-l="en">Your message</span><span data-l="fr">Votre message</span></label>
+        <textarea id="cf-msg" name="message" rows="6" placeholder="Your message" data-ph-en="Your message" data-ph-fr="Votre message" required></textarea>
 
-        <button type="submit" class="cf-submit">Send message</button>
+        <button type="submit" class="cf-submit"><span data-l="en">Send message</span><span data-l="fr">Envoyer</span></button>
         <p class="cf-status" role="status" aria-live="polite"></p>
       </form>
     </div>
@@ -142,24 +146,24 @@
 <footer class="foot">
   <div class="foot__grid">
     <div>
-      <h3>Navigation</h3>
+      <h3><span data-l="en">Navigation</span><span data-l="fr">Navigation</span></h3>
       <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="directors.html">Directors</a></li>
-        <li><a href="backstage.html">Backstage</a></li>
-        <li><a href="contact.html">Contact</a></li>
+        <li><a href="index.html"><span data-l="en">Home</span><span data-l="fr">Accueil</span></a></li>
+        <li><a href="directors.html"><span data-l="en">Directors</span><span data-l="fr">Réalisateurs</span></a></li>
+        <li><a href="backstage.html"><span data-l="en">Backstage</span><span data-l="fr">Coulisses</span></a></li>
+        <li><a href="contact.html"><span data-l="en">Contact</span><span data-l="fr">Contact</span></a></li>
       </ul>
     </div>
     <div>
-      <h3>Offices</h3>
+      <h3><span data-l="en">Offices</span><span data-l="fr">Bureaux</span></h3>
       <!-- Live analog clocks, one per office. Built by site.js. -->
       <div data-clocks></div>
     </div>
   </div>
   <div class="foot__base">
-    <p class="meta">© 2009—<span data-year>2026</span> Pixmakers Factory. <span>All rights reserved.</span></p>
+    <p class="meta">© 2009—<span data-year>2026</span> Pixmakers Factory. <span><span data-l="en">All rights reserved.</span><span data-l="fr">Tous droits réservés.</span></span></p>
     <p class="meta">Paris — Los Angeles</p>
-    <p class="meta credit">Design &amp; build by
+    <p class="meta credit"><span data-l="en">Design &amp; build by</span><span data-l="fr">Design et développement</span>
       <a href="https://mr-pinoux.com" target="_blank" rel="noopener">
         <img src="assets/img/mrp-logo.png" alt="Mr Pinoux" width="120" height="60">
       </a>

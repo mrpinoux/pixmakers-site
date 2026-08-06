@@ -8,6 +8,17 @@
 
   document.documentElement.classList.add("js");
 
+  /* ---- Bilingual plumbing -------------------------------------------------- *
+   * Static copy lives in the page twice and the CSS picks. Anything this file
+   * builds has no markup to hide, so it asks T() instead, and re-asks whenever
+   * the language changes.
+   * -------------------------------------------------------------------------- */
+
+  var LANG = "en";
+  var langHooks = [];
+  function T(en, fr) { return LANG === "fr" ? fr : en; }
+  function onLang(fn) { langHooks.push(fn); fn(); }
+
   /* ---- Mobile nav -------------------------------------------------------- */
 
   var bar = document.querySelector(".bar");
@@ -170,40 +181,62 @@
     if (e.key === "ArrowRight") { e.preventDefault(); stepPhoto(1); }
   });
 
-  /* ---- Post language switch ------------------------------------------------ *
-   * Backstage posts are French originals with an English translation beside
-   * them. Only the article body swaps; the rest of the page stays English.
+  /* ---- Language switch ----------------------------------------------------- *
+   * The whole site exists in English and in French. Every translated fragment
+   * is in the page twice, marked data-l, and the root attribute decides which
+   * one shows — the CSS does the hiding, so the page is already correct before
+   * this runs. English is what the server sends; the switch only remembers a
+   * different preference.
    * -------------------------------------------------------------------------- */
 
-  (function wirePostLang() {
-    var art = document.querySelector(".mag[data-lang]");
-    var box = document.querySelector("[data-postlang]");
-    if (!art || !box) return;
+  (function wireLang() {
+    var root = document.documentElement;
+    var nav = document.querySelector(".nav");
+    if (!nav) return;
 
-    box.className = "postlang";
+    var box = document.createElement("div");
+    box.className = "langsw";
     box.setAttribute("role", "group");
-    box.setAttribute("aria-label", "Article language");
+    box.setAttribute("aria-label", "Language");
     box.innerHTML =
-      '<button type="button" data-pl="en">EN</button>' +
-      '<button type="button" data-pl="fr">FR</button>';
+      '<button type="button" data-pl="en" lang="en">EN</button>' +
+      '<button type="button" data-pl="fr" lang="fr">FR</button>';
+    nav.appendChild(box);
 
-    function set(lang) {
+    /* Posts carried their own switch before the site had one. The placeholder
+       stays in the markup; it just has nothing left to do. */
+    var old = document.querySelector("[data-postlang]");
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+
+    function set(lang, remember) {
       if (lang !== "fr") lang = "en";
-      art.setAttribute("data-lang", lang);
+      LANG = lang;
+      root.setAttribute("data-lang", lang);
+      root.setAttribute("lang", lang);
+
+      /* Les textes portes par un attribut ne peuvent pas exister en double
+         dans la page : on les remplace. */
+      document.querySelectorAll("[data-ph-fr]").forEach(function (el) {
+        el.placeholder = lang === "fr"
+          ? el.getAttribute("data-ph-fr")
+          : el.getAttribute("data-ph-en") || el.placeholder;
+      });
+      langHooks.forEach(function (fn) { fn(); });
       box.querySelectorAll("[data-pl]").forEach(function (b) {
         b.setAttribute("aria-pressed", String(b.getAttribute("data-pl") === lang));
       });
-      try { localStorage.setItem("pxm-post-lang", lang); } catch (e) { /* ignore */ }
+      if (remember) { try { localStorage.setItem("pxm-lang", lang); } catch (e) {} }
     }
 
     box.addEventListener("click", function (e) {
       var b = e.target.closest("[data-pl]");
-      if (b) set(b.getAttribute("data-pl"));
+      if (b) set(b.getAttribute("data-pl"), true);
     });
 
-    var saved;
-    try { saved = localStorage.getItem("pxm-post-lang"); } catch (e) { /* ignore */ }
-    set(saved || art.getAttribute("data-lang"));
+    var saved = null;
+    try { saved = localStorage.getItem("pxm-lang") || localStorage.getItem("pxm-post-lang"); }
+    catch (e) {}
+    set(saved || "en", false);
   })();
 
   /* ---- Contact form -------------------------------------------------------- *
@@ -1315,23 +1348,50 @@
     // What each enquiry actually needs asked. A submission has no budget and a
     // quote has no showreel, so the fields follow the tab rather than sitting
     // there greyed out.
+    /* What each enquiry actually needs asked. A submission has no budget and a
+       quote has no showreel, so the fields follow the tab rather than sitting
+       there greyed out. Every label and option carries its French beside it —
+       these are built, so there is no markup for the CSS to hide. */
+    function F(en, fr) { return [en, fr]; }
     var FIELDS = {
       "Production enquiry": [
-        ["timing", "When", ["As soon as possible", "Within a month", "This quarter", "Just planning ahead"]],
-        ["scale",  "Scale", ["One shoot, one day", "A few days", "A full production", "A campaign, several pieces"]],
-        ["kind",   "What",  ["Music video", "Fashion film", "Commercial", "Live / event", "Something else"]],
-        ["where",  "Where", ["Los Angeles", "Paris", "Elsewhere in the US", "Elsewhere in Europe", "Further afield"]]
+        ["timing", F("When", "Quand"), [F("As soon as possible", "Dès que possible"),
+          F("Within a month", "Dans le mois"), F("This quarter", "Ce trimestre"),
+          F("Just planning ahead", "Simple anticipation")]],
+        ["scale", F("Scale", "Ampleur"), [F("One shoot, one day", "Un tournage, un jour"),
+          F("A few days", "Quelques jours"), F("A full production", "Une production complète"),
+          F("A campaign, several pieces", "Une campagne, plusieurs films")]],
+        ["kind", F("What", "Quoi"), [F("Music video", "Clip"), F("Fashion film", "Film de mode"),
+          F("Commercial", "Publicité"), F("Live / event", "Live / événement"),
+          F("Something else", "Autre chose")]],
+        ["where", F("Where", "Où"), [F("Los Angeles", "Los Angeles"), F("Paris", "Paris"),
+          F("Elsewhere in the US", "Ailleurs aux États-Unis"),
+          F("Elsewhere in Europe", "Ailleurs en Europe"), F("Further afield", "Plus loin")]]
       ],
       "Quote request": [
-        ["timing", "Needed by", ["This week", "This month", "This quarter", "No fixed date"]],
-        ["scale",  "Scale",     ["One shoot, one day", "A few days", "A full production", "A campaign, several pieces"]],
-        ["budget", "Budget",    ["Under 10k", "10 – 30k", "30 – 80k", "80k and up", "Rather discuss it"]],
-        ["stage",  "Stage",     ["Just an idea", "Treatment written", "Script locked", "Ready to shoot"]]
+        ["timing", F("Needed by", "Pour quand"), [F("This week", "Cette semaine"),
+          F("This month", "Ce mois-ci"), F("This quarter", "Ce trimestre"),
+          F("No fixed date", "Pas de date fixée")]],
+        ["scale", F("Scale", "Ampleur"), [F("One shoot, one day", "Un tournage, un jour"),
+          F("A few days", "Quelques jours"), F("A full production", "Une production complète"),
+          F("A campaign, several pieces", "Une campagne, plusieurs films")]],
+        ["budget", F("Budget", "Budget"), [F("Under 10k", "Moins de 10k"), F("10 – 30k", "10 – 30k"),
+          F("30 – 80k", "30 – 80k"), F("80k and up", "80k et plus"),
+          F("Rather discuss it", "Préfère en parler")]],
+        ["stage", F("Stage", "Avancement"), [F("Just an idea", "Une idée"),
+          F("Treatment written", "Note d’intention écrite"), F("Script locked", "Scénario validé"),
+          F("Ready to shoot", "Prêt à tourner")]]
       ],
       "Artist submission": [
-        ["craft",  "You are",  ["Director", "DP", "Editor", "Animator / 3D", "Musician", "Something else"]],
-        ["based",  "Based in", ["Los Angeles", "Paris", "Elsewhere in the US", "Elsewhere in Europe", "Further afield"]],
-        ["years",  "Doing it", ["Just starting", "A few years", "Five years or more", "A long time"]]
+        ["craft", F("You are", "Vous êtes"), [F("Director", "Réalisateur"), F("DP", "Chef opérateur"),
+          F("Editor", "Monteur"), F("Animator / 3D", "Animateur / 3D"), F("Musician", "Musicien"),
+          F("Something else", "Autre chose")]],
+        ["based", F("Based in", "Basé à"), [F("Los Angeles", "Los Angeles"), F("Paris", "Paris"),
+          F("Elsewhere in the US", "Ailleurs aux États-Unis"),
+          F("Elsewhere in Europe", "Ailleurs en Europe"), F("Further afield", "Plus loin")]],
+        ["years", F("Doing it", "Depuis"), [F("Just starting", "Les débuts"),
+          F("A few years", "Quelques années"), F("Five years or more", "Cinq ans ou plus"),
+          F("A long time", "Longtemps")]]
       ],
       "Something else": []
     };
@@ -1339,12 +1399,22 @@
     function render(topic) {
       if (!extra) return;
       extra.innerHTML = (FIELDS[topic] || []).map(function (f) {
-        return '<label class="vh" for="cf-' + f[0] + '">' + f[1] + "</label>" +
+        var label = T(f[1][0], f[1][1]);
+        return '<label class="vh" for="cf-' + f[0] + '">' + label + "</label>" +
                '<select id="cf-' + f[0] + '" name="' + f[0] + '">' +
-               '<option value="">' + f[1] + " — pick one</option>" +
-               f[2].map(function (o) { return "<option>" + o + "</option>"; }).join("") +
+               '<option value="">' + label + T(" — pick one", " — au choix") + "</option>" +
+               f[2].map(function (o) { return "<option>" + T(o[0], o[1]) + "</option>"; }).join("") +
                "</select>";
       }).join("");
+    }
+
+    function current() {
+      var on = document.querySelector(".ctabs [aria-selected='true']");
+      return on || tabs[0];
+    }
+    function prompt(tab) {
+      return T(tab.getAttribute("data-prompt") || "Your message",
+               tab.getAttribute("data-prompt-fr") || "Votre message");
     }
 
     tabs.forEach(function (tab) {
@@ -1352,12 +1422,19 @@
         tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); });
         var topic = tab.getAttribute("data-topic") || "";
         if (subject) subject.value = topic;
-        if (msg) msg.placeholder = tab.getAttribute("data-prompt") || "Your message";
+        if (msg) msg.placeholder = prompt(tab);
         render(topic);
       });
     });
 
-    render(subject ? subject.value : "");
+    /* Changer de langue refait les champs du sujet en cours, sans rien perdre
+       de ce qui est déjà tapé ailleurs. */
+    onLang(function () {
+      var tab = current();
+      if (msg) msg.placeholder = prompt(tab);
+      render(tab.getAttribute("data-topic") || (subject ? subject.value : ""));
+    });
+
   })();
 
   /* ---- Post photographs join the lightbox ---------------------------------- *
@@ -1429,12 +1506,12 @@
     var bar = document.createElement("div");
     bar.className = "wfilter";
     bar.innerHTML =
-      '<input type="search" class="wfilter__q" placeholder="Search a title or a client" aria-label="Search work">' +
-      (cats.length > 1 ? '<select class="wfilter__cat" aria-label="Category">' + options(cats, "All categories") + "</select>" : "") +
-      (styles.length > 1 ? '<select class="wfilter__style" aria-label="Musical style">' + options(styles, "All styles") + "</select>" : "") +
-      (locs.length > 1 ? '<select class="wfilter__loc" aria-label="Location">' + options(locs, "All locations") + "</select>" : "") +
-      (artists.length > 1 ? '<select class="wfilter__artist" aria-label="Artist">' + options(artists, "All artists") + "</select>" : "") +
-      '<button type="button" class="wfilter__sort" data-dir="desc">Newest first</button>' +
+      '<input type="search" class="wfilter__q" aria-label="Search work">' +
+      (cats.length > 1 ? '<select class="wfilter__cat" aria-label="Category">' + options(cats, "") + "</select>" : "") +
+      (styles.length > 1 ? '<select class="wfilter__style" aria-label="Musical style">' + options(styles, "") + "</select>" : "") +
+      (locs.length > 1 ? '<select class="wfilter__loc" aria-label="Location">' + options(locs, "") + "</select>" : "") +
+      (artists.length > 1 ? '<select class="wfilter__artist" aria-label="Artist">' + options(artists, "") + "</select>" : "") +
+      '<button type="button" class="wfilter__sort" data-dir="desc"></button>' +
       '<p class="wfilter__count meta" aria-live="polite"></p>' +
       '<button type="button" class="wfilter__clear" hidden ' +
       'aria-label="Clear the filters" title="Clear the filters">×</button>';
@@ -1448,6 +1525,22 @@
     var sort = bar.querySelector(".wfilter__sort");
     var count = bar.querySelector(".wfilter__count");
     var clear = bar.querySelector(".wfilter__clear");
+
+    /* Les libellés se refont à chaque changement de langue ; les valeurs des
+       options, elles, sont des données et ne se traduisent pas. */
+    onLang(function () {
+      q.placeholder = T("Search a title or a client", "Chercher un titre ou un artiste");
+      if (cat) cat.options[0].text = T("All categories", "Toutes catégories");
+      if (sty) sty.options[0].text = T("All styles", "Tous styles");
+      if (loc) loc.options[0].text = T("All locations", "Tous lieux");
+      if (art) art.options[0].text = T("All artists", "Tous artistes");
+      sort.textContent = sort.getAttribute("data-dir") === "asc"
+        ? T("Oldest first", "Plus anciens d’abord")
+        : T("Newest first", "Plus récents d’abord");
+      clear.setAttribute("aria-label", T("Clear the filters", "Effacer les filtres"));
+      clear.title = T("Clear the filters", "Effacer les filtres");
+      apply();
+    });
 
     function text(t) {
       var a = t.querySelector(".work__title"), b = t.querySelector(".work__client");
@@ -1479,8 +1572,8 @@
       }).forEach(function (t) { sheet.appendChild(t); });
 
       count.textContent = shown === tiles.length
-        ? tiles.length + " pieces"
-        : shown + " of " + tiles.length;
+        ? tiles.length + T(" pieces", " films")
+        : shown + T(" of ", " sur ") + tiles.length;
 
       /* Nothing to undo, nothing to show. The button only appears once a
          filter is actually narrowing the grid. */
@@ -1504,7 +1597,9 @@
     sort.addEventListener("click", function () {
       var asc = sort.getAttribute("data-dir") === "asc";
       sort.setAttribute("data-dir", asc ? "desc" : "asc");
-      sort.textContent = asc ? "Newest first" : "Oldest first";
+      sort.textContent = asc
+        ? T("Newest first", "Plus récents d’abord")
+        : T("Oldest first", "Plus anciens d’abord");
       apply();
     });
     apply();

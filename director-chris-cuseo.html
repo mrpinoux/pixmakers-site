@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,16 +21,16 @@
 </head>
 <body>
 
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main"><span data-l="en">Skip to content</span><span data-l="fr">Aller au contenu</span></a>
 
 <header class="bar">
   <a class="brand" href="index.html">Pixmakers<span>.</span>Factory</a>
   <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu"><i></i></button>
   <nav class="nav" id="nav" aria-label="Primary">
-    <a href="index.html">Home</a>
-    <a href="directors.html" aria-current="page">Directors</a>
-    <a href="backstage.html">Backstage</a>
-    <a href="contact.html">Contact</a>
+    <a href="index.html"><span data-l="en">Home</span><span data-l="fr">Accueil</span></a>
+    <a href="directors.html" aria-current="page"><span data-l="en">Directors</span><span data-l="fr">Réalisateurs</span></a>
+    <a href="backstage.html"><span data-l="en">Backstage</span><span data-l="fr">Coulisses</span></a>
+    <a href="contact.html"><span data-l="en">Contact</span><span data-l="fr">Contact</span></a>
   </nav>
 </header>
 
@@ -39,7 +39,7 @@
   <section class="section">
     <div class="wrap">
       <p class="meta" style="margin-bottom:2rem">
-        <a href="directors.html">← All directors</a>
+        <a href="directors.html"><span data-l="en">← All directors</span><span data-l="fr">← Tous les réalisateurs</span></a>
       </p>
 
       <div class="profile">
@@ -52,11 +52,18 @@
           <h1 class="profile__name" data-scatter>Chris Cuseo</h1>
           <p class="meta" style="margin-top:1rem">Director / Sculptor / Painter</p>
 
-          <div class="profile__bio">
+          <div class="profile__bio"><div data-l="en">
             <p>Cuseo is a sculptor, painter and multi-faceted artist who studied design and film at UCLA. Mentored by Vasa Mihich and Frank Gehry, he has exhibited his work nationally and internationally since graduating in 2003.</p>
             <p>His expertise in graphic design and animation — Photoshop, Z Brush, Maya, After Effects — has led to collaborations with top filmmakers, including the opening title sequences for She's Funny That Way and Billionaire Boys Club.</p>
             <p>He also produces fashion films and commercials for clients such as AESOP.</p>
-          </div>
+          </div><div data-l="fr">
+            <p>Cuseo est sculpteur, peintre et artiste aux multiples facettes. Il a étudié le
+              design à UCLA, où il s’est spécialisé dans les génériques de films.</p>
+            <p>Sa maîtrise du graphisme et de l’animation — Photoshop, ZBrush, Maya — nourrit
+              une image dense, travaillée matière par matière.</p>
+            <p>Il réalise également des films de mode et des publicités, pour des clients
+              comme AESOP.</p>
+          </div></div>
 
           <dl class="facts">
             <div><dt>Studied</dt><dd>UCLA, class of 2003</dd></div>
@@ -73,7 +80,7 @@
     <div class="wrap">
       <div class="shead">
         <span class="num">↳</span>
-        <h2 class="shead__title" data-scatter>Selected work</h2>
+        <h2 class="shead__title" data-scatter><span data-l="en">Selected work</span><span data-l="fr">Films choisis</span></h2>
       </div>
 
       <div class="sheet">
@@ -144,24 +151,24 @@
 <footer class="foot">
   <div class="foot__grid">
     <div>
-      <h3>Navigation</h3>
+      <h3><span data-l="en">Navigation</span><span data-l="fr">Navigation</span></h3>
       <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="directors.html">Directors</a></li>
-        <li><a href="backstage.html">Backstage</a></li>
-        <li><a href="contact.html">Contact</a></li>
+        <li><a href="index.html"><span data-l="en">Home</span><span data-l="fr">Accueil</span></a></li>
+        <li><a href="directors.html"><span data-l="en">Directors</span><span data-l="fr">Réalisateurs</span></a></li>
+        <li><a href="backstage.html"><span data-l="en">Backstage</span><span data-l="fr">Coulisses</span></a></li>
+        <li><a href="contact.html"><span data-l="en">Contact</span><span data-l="fr">Contact</span></a></li>
       </ul>
     </div>
     <div>
-      <h3>Offices</h3>
+      <h3><span data-l="en">Offices</span><span data-l="fr">Bureaux</span></h3>
       <!-- Live analog clocks, one per office. Built by site.js. -->
       <div data-clocks></div>
     </div>
   </div>
   <div class="foot__base">
-    <p class="meta">© 2009—<span data-year>2026</span> Pixmakers Factory. <span>All rights reserved.</span></p>
+    <p class="meta">© 2009—<span data-year>2026</span> Pixmakers Factory. <span><span data-l="en">All rights reserved.</span><span data-l="fr">Tous droits réservés.</span></span></p>
     <p class="meta">Paris — Los Angeles</p>
-    <p class="meta credit">Design &amp; build by
+    <p class="meta credit"><span data-l="en">Design &amp; build by</span><span data-l="fr">Design et développement</span>
       <a href="https://mr-pinoux.com" target="_blank" rel="noopener">
         <img src="assets/img/mrp-logo.png" alt="Mr Pinoux" width="120" height="60">
       </a>

@@ -1294,15 +1294,37 @@ h1.shead__title {
   transition: background .18s var(--ease), color .18s var(--ease);
 }
 .postlang button + button { border-left: 1px solid var(--rule-dark); }
+
+/* Le sélecteur de langue, dans la barre de navigation. */
+.langsw {
+  display: flex;
+  align-self: center;
+  box-shadow: 0 0 0 1px var(--rule-dark);
+}
+.langsw button {
+  padding: .3rem .55rem;
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: .1em;
+  color: var(--on-dark-muted);
+  transition: color .18s var(--ease), background .18s var(--ease);
+}
+.langsw button + button { border-left: 1px solid var(--rule-dark); }
+.langsw button:hover { color: var(--on-dark); }
+.langsw button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .postlang button:hover { color: var(--on-dark); }
 .postlang button[aria-pressed="true"] {
   background: var(--accent);
   color: var(--on-accent);
 }
 
-[data-l="fr"] { display: none; }
-.mag[data-lang="fr"] [data-l="en"] { display: none; }
-.mag[data-lang="fr"] [data-l="fr"] { display: block; }
+/* Bilingue. Chaque fragment traduit existe en double, marqué data-l, et
+   c'est la racine du document qui décide lequel s'affiche. `display` n'est
+   jamais imposé à celui qu'on garde : un span reste en ligne, un paragraphe
+   reste bloc. La page sort du serveur avec data-lang="en", donc l'anglais
+   s'affiche même sans JavaScript. */
+html[data-lang="en"] [data-l="fr"],
+html[data-lang="fr"] [data-l="en"] { display: none !important; }
 
 @media (max-width: 900px) {
   .m3, .m4, .m5, .m6, .m7, .m8, .m12 { grid-column: 1 / -1; }
