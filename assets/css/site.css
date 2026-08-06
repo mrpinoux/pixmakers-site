@@ -298,6 +298,9 @@ h1.shead__title {
 .hero__bg {
   position: absolute;
   inset: 0;
+  /* Below the dust, which sits at -1. Left at auto it would come between the
+     dust and the type and grey the motes down. */
+  z-index: -2;
   background: var(--ink-soft);
   filter: grayscale(1) contrast(1.15);
   opacity: .55;
@@ -335,7 +338,11 @@ h1.shead__title {
      cover the hero. */
   width: 100%;
   height: 100%;
-  z-index: 0;
+  /* Negative, not 0. A heading is ordinary in-flow content with no z-index of
+     its own, and a positioned sibling at 0 paints over it — which put the dust
+     on top of the letters everywhere except the hero, whose inner block
+     happens to carry z-index 1. Below the text, above the host's backdrop. */
+  z-index: -1;
   pointer-events: none;
 }
 
@@ -373,8 +380,25 @@ h1.shead__title {
 [data-scatter] { cursor: default; }
 
 /* The block a scattering heading lives in hosts its dust canvas, so it has to
-   establish a containing block. Set by site.js, never in the markup. */
-.scatter-host { position: relative; }
+   establish a containing block. isolation keeps the negative layer below from
+   escaping behind the page. Set by site.js, never in the markup. */
+.scatter-host {
+  position: relative;
+  isolation: isolate;
+}
+
+/* One fixed sheet for the dust thrown off director rows and work tiles. Shared
+   rather than one canvas per element: motes have to be free to drift past the
+   edge of whatever threw them, and a canvas inside the tile would clip them.
+   Under the lightbox, over everything else. */
+.dust-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 60;
+  pointer-events: none;
+}
 
 .hero__foot {
   display: flex;

@@ -786,6 +786,95 @@
     document.querySelectorAll("[data-scatter]").forEach(initScatter);
   }
 
+  /* ---- Dust on rows and tiles ---------------------------------------------- *
+   * The same debris as the headings, thrown by the pointer as it crosses a
+   * director row or a work tile. One fixed canvas for the whole document —
+   * motes need to drift past the edge of whatever threw them, and a canvas
+   * inside the tile would clip them at the border.
+   *
+   * The throw follows the pointer's own travel, so a slow pass barely raises
+   * anything and a quick sweep kicks up a trail. Skipped for coarse pointers
+   * and reduced-motion, and the loop parks itself when the last mote dies.
+   * -------------------------------------------------------------------------- */
+
+  (function () {
+    if (!window.matchMedia) return;
+    if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    var SEL = ".cast__row, a.work";
+    if (!document.querySelector(SEL)) return;
+
+    var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
+    var MAX = 220;
+
+    var cv = document.createElement("canvas");
+    cv.className = "dust-layer";
+    cv.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cv);
+    var cx = cv.getContext("2d");
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = 0, h = 0;
+
+    function size() {
+      var nw = Math.round(innerWidth * dpr), nh = Math.round(innerHeight * dpr);
+      if (nw === w && nh === h) return;
+      w = cv.width = nw; h = cv.height = nh;
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.imageSmoothingEnabled = false;
+    }
+    size();
+    addEventListener("resize", size);
+
+    var motes = [], running = false, lx = null, ly = null;
+
+    function frame() {
+      cx.clearRect(0, 0, innerWidth, innerHeight);
+      for (var i = motes.length - 1; i >= 0; i--) {
+        var m = motes[i];
+        m.x += m.vx; m.y += m.vy;
+        m.vy += .014;
+        m.vx *= .992;
+        m.life -= m.fade;
+        if (m.life <= 0) { motes.splice(i, 1); continue; }
+        cx.globalAlpha = m.life;
+        cx.fillStyle = m.col;
+        cx.fillRect(m.x | 0, m.y | 0, m.s, m.s);
+      }
+      cx.globalAlpha = 1;
+      if (motes.length) requestAnimationFrame(frame);
+      else running = false;
+    }
+
+    document.addEventListener("mousemove", function (e) {
+      // e.target is not always an Element — a move over the gaps between
+      // elements reports the document, which has no closest().
+      var hit = e.target && e.target.closest ? e.target.closest(SEL) : null;
+      var dx = lx === null ? 0 : e.clientX - lx;
+      var dy = ly === null ? 0 : e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      if (!hit) return;
+
+      // Speed sets the count: a still pointer raises nothing at all.
+      var speed = Math.hypot(dx, dy);
+      var n = Math.min(4, (speed / 9) | 0);
+      for (var i = 0; i < n && motes.length < MAX; i++) {
+        motes.push({
+          x: e.clientX + (Math.random() - .5) * 14,
+          y: e.clientY + (Math.random() - .5) * 14,
+          vx: dx * .10 + (Math.random() - .5) * .7,
+          vy: dy * .10 + (Math.random() - .5) * .7,
+          s: Math.random() < .7 ? 2 + ((Math.random() * 5) | 0)
+                                : 1 + ((Math.random() * 2) | 0),
+          life: 1,
+          fade: .012 + Math.random() * .014,
+          col: PALETTE[(Math.random() * PALETTE.length) | 0]
+        });
+      }
+      if (motes.length && !running) { running = true; requestAnimationFrame(frame); }
+    }, { passive: true });
+  })();
+
   /* ---- Blur-up portraits --------------------------------------------------- *
    * The container carries --lqip, a 24px still of the photo. CSS paints it
    * blurred behind the <img>; this only handles the fade, and only when the
