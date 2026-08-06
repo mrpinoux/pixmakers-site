@@ -1377,8 +1377,10 @@
 
   /* ---- Filtering a work grid ------------------------------------------------ *
    * Built only where a grid is long enough to need it. Search reads the title
-   * and the client; the category list is built from the values actually on the
-   * tiles, so a grid never offers a filter that would return nothing.
+   * and the client; the category and artist lists are built from the values
+   * actually on the tiles, so a grid never offers a filter that would return
+   * nothing. The artist comes straight off the client line already in the
+   * markup — no second source to keep in step.
    *
    * Dates are never shown — the work stays undated on the page — but they are
    * carried on the tiles so the grid can be ordered by them. Anything with no
@@ -1400,6 +1402,18 @@
     }
     var cats = values("data-cat");
 
+    function artistOf(t) {
+      var c = t.querySelector(".work__client");
+      return c ? c.textContent.trim() : "";
+    }
+    var artists = (function () {
+      var seen = {};
+      tiles.forEach(function (t) { var a = artistOf(t); if (a) seen[a] = 1; });
+      return Object.keys(seen).sort(function (a, b) {
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+      });
+    })();
+
     function options(list, label) {
       return '<option value="">' + label + "</option>" +
              list.map(function (v) { return "<option>" + v + "</option>"; }).join("");
@@ -1410,12 +1424,14 @@
     bar.innerHTML =
       '<input type="search" class="wfilter__q" placeholder="Search a title or a client" aria-label="Search work">' +
       (cats.length > 1 ? '<select class="wfilter__cat" aria-label="Category">' + options(cats, "All categories") + "</select>" : "") +
+      (artists.length > 1 ? '<select class="wfilter__artist" aria-label="Artist">' + options(artists, "All artists") + "</select>" : "") +
       '<button type="button" class="wfilter__sort" data-dir="desc">Newest first</button>' +
       '<p class="wfilter__count meta" aria-live="polite"></p>';
     sheet.parentNode.insertBefore(bar, sheet);
 
     var q = bar.querySelector(".wfilter__q");
     var cat = bar.querySelector(".wfilter__cat");
+    var art = bar.querySelector(".wfilter__artist");
     var sort = bar.querySelector(".wfilter__sort");
     var count = bar.querySelector(".wfilter__count");
 
@@ -1426,11 +1442,12 @@
 
     function apply() {
       var term = (q.value || "").trim().toLowerCase();
-      var c = cat ? cat.value : "";
+      var c = cat ? cat.value : "", a = art ? art.value : "";
       var shown = 0;
       tiles.forEach(function (t) {
         var ok = (!term || text(t).indexOf(term) > -1) &&
-                 (!c || t.getAttribute("data-cat") === c);
+                 (!c || t.getAttribute("data-cat") === c) &&
+                 (!a || artistOf(t) === a);
         t.hidden = !ok;
         if (ok) shown++;
       });
@@ -1451,6 +1468,7 @@
 
     q.addEventListener("input", apply);
     if (cat) cat.addEventListener("change", apply);
+    if (art) art.addEventListener("change", apply);
     sort.addEventListener("click", function () {
       var asc = sort.getAttribute("data-dir") === "asc";
       sort.setAttribute("data-dir", asc ? "desc" : "asc");
