@@ -131,9 +131,22 @@
        si ça charge ou si c'est cassé. Une grille de pixels occupe l'attente,
        et l'iframe la recouvre en arrivant : pas de disparition à orchestrer,
        elle est simplement dessous. */
+    /* Le motif est tiré à chaque ouverture plutôt que figé dans la feuille :
+       seize retards mélangés, donc deux chargements ne clignotent jamais
+       pareil. C'est ce qui le fait lire comme une image qui se compose et
+       non comme une animation qui repasse. */
+    var order = [];
+    for (var i = 0; i < 16; i++) order.push(i * 0.09);
+    for (var j = order.length - 1; j > 0; j--) {
+      var k = (Math.random() * (j + 1)) | 0;
+      var tmp = order[j]; order[j] = order[k]; order[k] = tmp;
+    }
+    var cells = order.map(function (d) {
+      return '<i style="animation-delay:' + d.toFixed(2) + 's"></i>';
+    }).join("");
+
     lbFrame.innerHTML =
-      '<div class="lb__load" aria-hidden="true">' +
-      new Array(16).join("<i></i>") + "<i></i></div>" +
+      '<div class="lb__load" aria-hidden="true">' + cells + "</div>" +
       '<iframe src="' + url + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
 
     var frame = lbFrame.querySelector("iframe");
@@ -1115,11 +1128,13 @@
     }
 
     function launch(el, kind, out) {
-      /* La boîte de l'image, pas celle du lien. Le décalage se joue sur la
-         seule zone image ; mesurer le lien entier faisait partir la
-         poussière depuis le titre et le texte, bien en dessous de ce qui
-         bouge. */
-      var box = el.querySelector(".work__media, .card__media") || el;
+      /* La boîte qui porte l'ombre rose, et elle n'est pas la même des deux
+         côtés — le CSS décale `.work` en entier mais seulement `.card__media`
+         d'une carte. La poussière doit sortir de ce qui bouge, sinon elle
+         part d'un bord qui n'a pas bougé. */
+      var box = el.classList.contains("card")
+        ? (el.querySelector(".card__media") || el)
+        : el;
       fronts.push({
         kind: kind,
         out: out,                         // which way the shape is going
