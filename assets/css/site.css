@@ -963,6 +963,31 @@ h1.shead__title {
 
 /* --- Contact form --------------------------------------------------------- */
 
+/* The enquiry tabs. Same grammar as the director rows: sharp corners, mono
+   caps, an accent fill on the one that is live. */
+.ctabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+.ctabs button {
+  padding: .85rem 1.15rem;
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--on-dark-muted);
+  box-shadow: 0 0 0 1px var(--rule-dark);
+  transition: color .18s var(--ease), background .18s var(--ease);
+}
+.ctabs button:hover { color: var(--on-dark); }
+.ctabs button[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 .cform { max-width: 44rem; }
 .cf-row {
   display: grid;

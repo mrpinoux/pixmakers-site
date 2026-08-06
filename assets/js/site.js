@@ -1270,6 +1270,30 @@
                    new Array(n + 1).join('<i></i>');
   });
 
+  /* ---- Enquiry tabs --------------------------------------------------------- *
+   * One form, four ways in. The chosen tab sets the subject line the message
+   * arrives under and rewrites the message prompt, so each kind of enquiry is
+   * asked for what it actually needs. Without JS the first tab is already
+   * marked selected and the hidden subject already carries its value, so the
+   * form is unchanged rather than broken.
+   * -------------------------------------------------------------------------- */
+
+  (function () {
+    var tabs = document.querySelectorAll(".ctabs [role='tab']");
+    var form = document.getElementById("contactForm");
+    if (!tabs.length || !form) return;
+    var subject = form.querySelector('[name="subject"]');
+    var msg = form.querySelector('[name="message"]');
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); });
+        if (subject) subject.value = tab.getAttribute("data-topic") || "";
+        if (msg) msg.placeholder = tab.getAttribute("data-prompt") || "Your message";
+      });
+    });
+  })();
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {

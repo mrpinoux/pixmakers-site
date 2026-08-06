@@ -89,7 +89,27 @@
       <!-- Posts to Web3Forms — see WEB3FORMS_KEY in assets/js/site.js.
            novalidate: site.js does the checking so the messages match the
            rest of the page instead of the browser's default bubbles. -->
+      <!-- What are you writing about? The choice sets the subject line and
+           rewrites the message prompt, so the form asks for what that kind of
+           enquiry actually needs. site.js wires it; without JS the first one
+           is already selected and the form works unchanged. -->
+      <div class="ctabs" role="tablist" aria-label="What is this about">
+        <button type="button" role="tab" aria-selected="true"
+                data-topic="Production enquiry"
+                data-prompt="The project, the dates, and roughly where it shoots.">Production</button>
+        <button type="button" role="tab" aria-selected="false"
+                data-topic="Quote request"
+                data-prompt="What you need, how long it runs, and when you need it by.">Get a quote</button>
+        <button type="button" role="tab" aria-selected="false"
+                data-topic="Artist submission"
+                data-prompt="Who you are, a link to your work, and what you are looking for.">Artist submission</button>
+        <button type="button" role="tab" aria-selected="false"
+                data-topic="Something else"
+                data-prompt="Tell us what is on your mind.">Something else</button>
+      </div>
+
       <form id="contactForm" class="cform" novalidate>
+        <input type="hidden" name="subject" value="Production enquiry">
         <div class="cf-row">
           <label class="vh" for="cf-name">Your name</label>
           <input id="cf-name" name="name" placeholder="Your name" autocomplete="name">
