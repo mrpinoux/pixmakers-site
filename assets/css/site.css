@@ -477,6 +477,8 @@ h1.shead__title {
   appearance: none;
 }
 .wfilter input { flex: 1 1 16rem; min-width: 0; }
+
+
 .wfilter input::placeholder { color: var(--on-dark-muted); text-transform: uppercase; }
 .wfilter select,
 .wfilter__sort { cursor: pointer; }
@@ -660,6 +662,32 @@ h1.shead__title {
   text-transform: uppercase;
   color: var(--on-dark-muted);
 }
+
+/* Catégorie et style, en annotation sous le client — l'écriture au crayon
+   dans la marge d'une planche-contact. Plus petit et plus pâle que le nom de
+   l'artiste : c'est un classement, pas un crédit. */
+.work__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  padding: .3rem 1rem 0;
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--on-dark-muted);
+  opacity: .62;
+}
+.work__tags span + span::before {
+  content: "·";
+  margin-right: .45rem;
+  opacity: .7;
+}
+.work__tags [data-tag="style"] { color: var(--accent); opacity: .85; }
+.paper .work__tags { color: var(--on-light-muted); }
+.paper .work__tags [data-tag="style"] { color: var(--accent-ink); }
+.work:hover .work__tags,
+.work:focus-visible .work__tags { opacity: 1; }
 .paper .work__client { color: var(--on-light-muted); }
 .work:hover .work__title,
 .work:focus-visible .work__title { color: var(--accent); }
@@ -1637,4 +1665,35 @@ html[data-lang="fr"] [data-l="en"] { display: none !important; }
 @media print {
   .bar, .foot, .lb, .skip { display: none; }
   body { background: #fff; color: #000; }
+}
+
+/* --- Barre de filtres : adaptations d'écran ------------------------------ *
+   Placées en fin de feuille pour l'emporter sur les règles de base : une
+   media query n'ajoute pas de spécificité, seulement de l'ordre. */
+
+/* À l'étroit, la recherche prend sa propre ligne. Elle se laissait écraser
+   entre quatre menus, et un champ de saisie de six caractères de large ne
+   sert à personne — les menus, eux, gardent leur libellé. */
+@media (max-width: 1180px) {
+  .wfilter__q { flex: 1 1 100%; }
+  .wfilter select, .wfilter__sort { flex: 1 1 auto; }
+  .wfilter__count { margin-left: auto; }
+}
+
+/* Sur un téléphone, on empile. Laisser les menus se répartir donnait des
+   lignes bancales — deux ici, un là, chacun d'une largeur différente selon
+   la longueur de son libellé. Un par ligne, pleine largeur : c'est plus
+   long à parcourir mais ça se lit et ça se vise au pouce. */
+@media (max-width: 760px) {
+  .wfilter { gap: 1px; }
+  .wfilter__q,
+  .wfilter select,
+  .wfilter__sort { flex: 1 1 100%; width: 100%; }
+  .wfilter__clear { flex: 1 1 100%; width: 100%; margin-left: 0; }
+  .wfilter__count {
+    flex: 1 1 100%;
+    margin-left: 0;
+    padding: .5rem 0 0;
+    text-align: right;
+  }
 }

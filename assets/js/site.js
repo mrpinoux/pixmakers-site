@@ -213,6 +213,17 @@
    * different preference.
    * -------------------------------------------------------------------------- */
 
+  /* Les étiquettes des vignettes portent la valeur anglaise dans la page —
+     c'est ce que lit le filtre, et c'est ce qui s'affiche sans JavaScript.
+     Ici on ne change que le mot montré. */
+  onLang(function () {
+    document.querySelectorAll(".work__tags [data-tag]").forEach(function (el) {
+      var tile = el.closest(".work");
+      var v = tile && tile.getAttribute("data-" + el.getAttribute("data-tag"));
+      if (v) el.textContent = L(v);
+    });
+  });
+
   (function wireLang() {
     var root = document.documentElement;
     var nav = document.querySelector(".nav");
