@@ -547,9 +547,11 @@
         s: Math.random() < .75
              ? 3 + ((Math.random() * 7) | 0)      // 3–9 px, the 300% band
              : 1 + ((Math.random() * 3) | 0),     // 1–3 px, the original grain
-        life: 1,
-        // Slow: a mote lives roughly one to two and a half seconds.
-        fade: .007 + Math.random() * .009,
+        // Lifetimes spread wide and multiplicatively, plus a random hold at
+        // full opacity before the decay starts. A narrow additive range made
+        // a burst of motes wink out together; this staggers them.
+        life: 1 + Math.random() * .9,
+        fade: .010 * (.4 + Math.random() * 2.4),
         col: PALETTE[(Math.random() * PALETTE.length) | 0]
       });
     }
@@ -643,7 +645,7 @@
         m.vx *= .992;
         m.life -= m.fade;
         if (m.life <= 0) { motes.splice(i, 1); continue; }
-        ctx.globalAlpha = m.life;
+        ctx.globalAlpha = m.life > 1 ? 1 : m.life;   // the hold, then the fade
         ctx.fillStyle = m.col;
         ctx.fillRect(m.x | 0, m.y | 0, m.s, m.s);  // integer px, no smearing
       }
@@ -837,7 +839,7 @@
         m.vx *= .992;
         m.life -= m.fade;
         if (m.life <= 0) { motes.splice(i, 1); continue; }
-        cx.globalAlpha = m.life;
+        cx.globalAlpha = m.life > 1 ? 1 : m.life;   // the hold, then the fade
         cx.fillStyle = m.col;
         cx.fillRect(m.x | 0, m.y | 0, m.s, m.s);
       }
@@ -866,8 +868,8 @@
           vy: dy * .10 + (Math.random() - .5) * .7,
           s: Math.random() < .7 ? 2 + ((Math.random() * 5) | 0)
                                 : 1 + ((Math.random() * 2) | 0),
-          life: 1,
-          fade: .012 + Math.random() * .014,
+          life: 1 + Math.random() * .9,
+          fade: .016 * (.4 + Math.random() * 2.4),
           col: PALETTE[(Math.random() * PALETTE.length) | 0]
         });
       }
