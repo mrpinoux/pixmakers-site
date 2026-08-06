@@ -1047,10 +1047,15 @@
     }
 
     function launch(el, kind, out) {
+      /* La boîte de l'image, pas celle du lien. Le décalage se joue sur la
+         seule zone image ; mesurer le lien entier faisait partir la
+         poussière depuis le titre et le texte, bien en dessous de ce qui
+         bouge. */
+      var box = el.querySelector(".work__media, .card__media") || el;
       fronts.push({
         kind: kind,
         out: out,                         // which way the shape is going
-        r: el.getBoundingClientRect(),
+        r: box.getBoundingClientRect(),
         t0: performance.now(),
         dur: kind === "row" ? 420 : 190   // in step with the CSS transitions
       });
