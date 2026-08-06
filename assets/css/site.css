@@ -742,13 +742,17 @@ h1.shead__title {
 /* The mosaic veil. site.js redraws the portrait through it at a block size
    that tightens on hover and coarsens again on the way out. Inside the
    container, so it picks up the same grayscale as the photo underneath. */
-.px-veil {
+.px-veil,
+.px-fall {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
+/* The falling pixels ride above the veil. Drawn onto it they would leave a
+   permanent trail, since the veil is never redrawn — only erased into. */
+.px-fall { z-index: 1; }
 
 .profile__name {
   font-size: var(--t-xl);

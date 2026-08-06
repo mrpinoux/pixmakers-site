@@ -968,11 +968,15 @@
   });
 
   /* ---- Mosaic veil on the portraits ---------------------------------------- *
-   * The portrait sits mosaicked. The pointer opens a soft-edged disc in the
-   * mosaic and the real photograph shows through it — the veil is what gets
-   * erased, so the sharp image underneath is the untouched <img>, not a
-   * redraw. The hole closes slowly when the pointer leaves; a little decay,
-   * so the image resolves and dissolves rather than switching.
+   * The portrait arrives mosaicked and the pointer rubs it away. The erasure
+   * accumulates: wherever you have already been stays clear, so the picture
+   * comes out of the mosaic as you explore it and a second pass over the same
+   * spot deepens what the first one started. Nothing is stored — every visit
+   * to the page starts fully covered again.
+   *
+   * Two layers. The veil is only ever erased into, never redrawn, which is why
+   * this costs almost nothing; the falling pixels need their own canvas above
+   * it, or they would smear permanent trails across the one below.
    * -------------------------------------------------------------------------- */
 
   (function () {
@@ -980,175 +984,143 @@
     if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    var BLOCK = 13;    // px per mosaic cell at rest
-    var HOLE  = 172;   // radius of the sharp patch
-
+    var BLOCK = 13;    // px per mosaic cell
+    var BRUSH = 96;    // radius the pointer clears
 
     document.querySelectorAll(".profile__portrait").forEach(function (box) {
       var img = box.querySelector("img");
       if (!img) return;
 
-      var cv = document.createElement("canvas");
-      cv.className = "px-veil";
-      cv.setAttribute("aria-hidden", "true");
-      box.appendChild(cv);
-      var cx = cv.getContext("2d");
-      var off = document.createElement("canvas");
-      var ox = off.getContext("2d");
+      function layer(cls) {
+        var c = document.createElement("canvas");
+        c.className = cls;
+        c.setAttribute("aria-hidden", "true");
+        box.appendChild(c);
+        return c;
+      }
+      var cv = layer("px-veil"), cx = cv.getContext("2d");
+      var fc = layer("px-fall"), fx = fc.getContext("2d");
+      var off = document.createElement("canvas"), ox = off.getContext("2d");
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      var w = 0, h = 0, r = 0, tr = 0, mx = 0, my = 0, running = false, ready = false;
-      var lw = 0, lh = 0, noise = null;
-      var last = 0;
-      var mdata = null, falling = [], gaps = [];
+      var w = 0, h = 0, lw = 0, lh = 0;
+      var noise = null, mdata = null, ready = false;
+      var falling = [], running = false;
 
-      function size() {
+      function build() {
         var b = cv.getBoundingClientRect();
-        var nw = Math.max(1, Math.round(b.width * dpr));
-        var nh = Math.max(1, Math.round(b.height * dpr));
-        if (nw === cv.width && nh === cv.height) return;
-        cv.width = nw; cv.height = nh;
-        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        cx.imageSmoothingEnabled = false;   // the upscale is the whole point
         w = b.width; h = b.height;
-      }
+        if (!w || !img.naturalWidth) return;
 
-      // The <img> is object-fit: cover, so the canvas has to crop the same way
-      // or the mosaic would sit out of register with the photo beneath it.
-      function mosaic() {
+        [cv, fc].forEach(function (c) {
+          c.width = Math.max(1, Math.round(w * dpr));
+          c.height = Math.max(1, Math.round(h * dpr));
+        });
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        fx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx.imageSmoothingEnabled = false;   // the upscale is the whole point
+        fx.imageSmoothingEnabled = false;
+
         lw = Math.max(2, Math.round(w / BLOCK));
         lh = Math.max(2, Math.round(h / BLOCK));
-        // A fixed value per cell. Rolled fresh every frame the edge would
-        // boil; rolled once, the hole has a ragged but steady bite.
-        noise = new Float32Array(lw * lh);
-        for (var n = 0; n < noise.length; n++) noise[n] = Math.random();
         off.width = lw; off.height = lh;
         ox.imageSmoothingEnabled = true;    // clean on the way down
+
+        // object-fit: cover, matched — otherwise the mosaic sits out of
+        // register with the photograph underneath it.
         var ir = img.naturalWidth / img.naturalHeight, br = w / h;
         var sw = ir > br ? img.naturalHeight * br : img.naturalWidth;
         var sh = ir > br ? img.naturalHeight : img.naturalWidth / br;
         ox.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2,
                      sw, sh, 0, 0, lw, lh);
-        // Kept so a falling pixel can take the exact colour of the cell it
-        // detached from, rather than an invented one.
+
         mdata = ox.getImageData(0, 0, lw, lh).data;
+
+        // One fixed value per cell. Rolled per frame the rim would boil; rolled
+        // once, every cell has its own steady appetite.
+        noise = new Float32Array(lw * lh);
+        for (var n = 0; n < noise.length; n++) noise[n] = Math.random();
+
+        cx.clearRect(0, 0, w, h);
+        cx.drawImage(off, 0, 0, w, h);
         ready = true;
-      }
-
-      function frame(now) {
-        r += (tr - r) * (tr > r ? .2 : .07);   // opens briskly, closes slowly
-        cx.clearRect(0, 0, w, h);
-        cx.drawImage(off, 0, 0, w, h);
-
-        if (r > 1 && noise) {
-          // Punch the hole a cell at a time, so its edge is made of the same
-          // blocks as the mosaic and comes out chewed rather than compass-drawn.
-          var cw = w / lw, chh = h / lh;
-          var i0 = Math.max(0, ((mx - r) / cw) | 0), i1 = Math.min(lw - 1, ((mx + r) / cw) | 0);
-          var j0 = Math.max(0, ((my - r) / chh) | 0), j1 = Math.min(lh - 1, ((my + r) / chh) | 0);
-          cx.globalCompositeOperation = "destination-out";
-          cx.fillStyle = "#000";
-          for (var j = j0; j <= j1; j++) {
-            for (var i = i0; i <= i1; i++) {
-              var dx = (i + .5) * cw - mx, dy = (j + .5) * chh - my;
-              var d = Math.sqrt(dx * dx + dy * dy);
-              var nz = noise[j * lw + i];
-              // Solid well inside; out at the rim each cell decides for itself
-              // how far it reaches and how much of it goes.
-              var edge = r * (.62 + .5 * nz);
-              if (d > edge) continue;
-              var k = d < r * .45 ? 1 : 1 - (d - r * .45) / (edge - r * .45 + .001);
-              var al = k * (.55 + .45 * nz);
-              if (al < .06) continue;          // not worth a draw call
-              cx.globalAlpha = al > 1 ? 1 : al;
-              cx.fillRect(i * cw, j * chh, cw + .5, chh + .5);
-            }
-          }
-          cx.globalAlpha = 1;
-          cx.globalCompositeOperation = "source-over";
-        }
-        // The gap a detached pixel leaves. It heals as the pixel falls, so you
-        // see the cell come away rather than a square appearing from nowhere.
-        if (gaps.length) {
-          cx.globalCompositeOperation = "destination-out";
-          cx.fillStyle = "#000";
-          for (var gi = gaps.length - 1; gi >= 0; gi--) {
-            var gp = gaps[gi];
-            gp.life -= .022;
-            if (gp.life <= 0) { gaps.splice(gi, 1); continue; }
-            cx.globalAlpha = gp.life;
-            cx.fillRect(gp.x, gp.y, gp.s + .5, gp.s + .5);
-          }
-          cx.globalAlpha = 1;
-          cx.globalCompositeOperation = "source-over";
-        }
-
-        // Pixels shaken loose by the pointer, dropping straight down inside
-        // the frame. They carry the colour of the cell they came from, so they
-        // read as coming off the picture rather than being sprinkled onto it.
-        for (var fi = falling.length - 1; fi >= 0; fi--) {
-          var fp = falling[fi];
-          fp.y += fp.vy;
-          fp.vy += .22;
-          fp.life -= .012;
-          if (fp.life <= 0 || fp.y > h) { falling.splice(fi, 1); continue; }
-          cx.globalAlpha = fp.life > 1 ? 1 : fp.life;
-          cx.fillStyle = fp.col;
-          cx.fillRect(fp.x | 0, fp.y | 0, fp.s, fp.s);
-        }
-        cx.globalAlpha = 1;
-
-        if (Math.abs(tr - r) > .5 || falling.length || gaps.length) requestAnimationFrame(frame);
-        else { r = tr; running = false; }
-      }
-
-      function start() { if (!running) { running = true; requestAnimationFrame(frame); } }
-
-      function build() {
-        size();
-        if (!img.naturalWidth) return;
-        mosaic();
-        cx.clearRect(0, 0, w, h);
-        cx.drawImage(off, 0, 0, w, h);
       }
 
       if (img.complete && img.naturalWidth) build();
       else img.addEventListener("load", build, { once: true });
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
-      addEventListener("resize", function () { build(); });
+      addEventListener("resize", build);   // a resize restarts the picture covered
+
+      function fall() {
+        fx.clearRect(0, 0, w, h);
+        for (var i = falling.length - 1; i >= 0; i--) {
+          var f = falling[i];
+          f.y += f.vy;
+          f.vy += .22;
+          f.life -= .014;
+          if (f.life <= 0 || f.y > h) { falling.splice(i, 1); continue; }
+          fx.globalAlpha = f.life > 1 ? 1 : f.life;
+          fx.fillStyle = f.col;
+          fx.fillRect(f.x | 0, f.y | 0, f.s, f.s);
+        }
+        fx.globalAlpha = 1;
+        if (falling.length) requestAnimationFrame(fall);
+        else running = false;
+      }
 
       box.addEventListener("mousemove", function (e) {
         if (!ready) return;
         var b = cv.getBoundingClientRect();
-        mx = e.clientX - b.left; my = e.clientY - b.top;
-        tr = HOLE;
+        var mx = e.clientX - b.left, my = e.clientY - b.top;
+        var cw = w / lw, chh = h / lh;
 
-        // Shake a cell or two loose, from the rim of the patch rather than its
-        // middle — that is where the mosaic is still breaking up.
-        if (mdata && falling.length < 90) {
-          var cwd = w / lw, chd = h / lh;
+        // Rub, a cell at a time, so the cleared edge is built from the same
+        // blocks as the mosaic and comes out chewed rather than compass-drawn.
+        // Partial alpha, so passing again over the same place clears it further.
+        var i0 = Math.max(0, ((mx - BRUSH) / cw) | 0);
+        var i1 = Math.min(lw - 1, ((mx + BRUSH) / cw) | 0);
+        var j0 = Math.max(0, ((my - BRUSH) / chh) | 0);
+        var j1 = Math.min(lh - 1, ((my + BRUSH) / chh) | 0);
+        cx.globalCompositeOperation = "destination-out";
+        cx.fillStyle = "#000";
+        for (var j = j0; j <= j1; j++) {
+          for (var i = i0; i <= i1; i++) {
+            var dx = (i + .5) * cw - mx, dy = (j + .5) * chh - my;
+            var d = Math.sqrt(dx * dx + dy * dy);
+            var nz = noise[j * lw + i];
+            var edge = BRUSH * (.55 + .5 * nz);
+            if (d > edge) continue;
+            var al = (1 - d / edge) * (.18 + .3 * nz);
+            if (al < .02) continue;              // not worth a draw call
+            cx.globalAlpha = al;
+            cx.fillRect(i * cw, j * chh, cw + .5, chh + .5);
+          }
+        }
+        cx.globalAlpha = 1;
+        cx.globalCompositeOperation = "source-over";
+
+        // A cell or two comes away with it, from the rim where the mosaic is
+        // still breaking up, and drops straight down.
+        if (mdata && falling.length < 70) {
           for (var k = 0; k < 2; k++) {
             if (Math.random() > .30) continue;   // a third fewer than before
             var ang = Math.random() * Math.PI * 2;
-            var rad = r * (.5 + Math.random() * .55);
-            var px2 = mx + Math.cos(ang) * rad, py2 = my + Math.sin(ang) * rad;
-            var ci = (px2 / cwd) | 0, cj = (py2 / chd) | 0;
+            var rad = BRUSH * (.5 + Math.random() * .5);
+            var ci = ((mx + Math.cos(ang) * rad) / cw) | 0;
+            var cj = ((my + Math.sin(ang) * rad) / chh) | 0;
             if (ci < 0 || cj < 0 || ci >= lw || cj >= lh) continue;
             var o = (cj * lw + ci) * 4;
-            gaps.push({ x: ci * cwd, y: cj * chd, s: cwd, life: 1 });
             falling.push({
-              x: ci * cwd, y: cj * chd,
+              x: ci * cw, y: cj * chh,
               vy: .4 + Math.random() * 1.1,
-              s: Math.max(3, Math.round(cwd)),
+              s: Math.max(3, Math.round(cw)),
               life: 1 + Math.random() * .6,
               col: "rgb(" + mdata[o] + "," + mdata[o + 1] + "," + mdata[o + 2] + ")"
             });
           }
+          if (falling.length && !running) { running = true; requestAnimationFrame(fall); }
         }
-        start();
       });
-      box.addEventListener("mouseleave", function () { tr = 0; start(); });
-
     });
   })();
 
