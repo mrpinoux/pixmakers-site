@@ -556,8 +556,10 @@
         // Lifetimes spread wide and multiplicatively, plus a random hold at
         // full opacity before the decay starts. A narrow additive range made
         // a burst of motes wink out together; this staggers them.
-        life: 1 + Math.random() * .9,
-        fade: .010 * (.4 + Math.random() * 2.4),
+        // Shorter lived: they mark the passage and go, rather than hanging
+        // about in the frame.
+        life: 1 + Math.random() * .5,
+        fade: .022 * (.5 + Math.random() * 2),
         col: PALETTE[(Math.random() * PALETTE.length) | 0]
       });
     }
@@ -760,8 +762,9 @@
           }
         }
 
-        // Half as many as before.
-        if (stirring && (tx || ty) && mag > 4 && Math.random() < Math.min(.3, mag / 84)) {
+        // A third of what it was: at this grain size a handful reads as debris,
+        // a crowd reads as static.
+        if (stirring && (tx || ty) && mag > 4 && Math.random() < Math.min(.16, mag / 150)) {
           var ang = Math.random() * Math.PI * 2;
           var rad = Math.sqrt(Math.random()) * ERODE_R;
           shed(px - zoneRect.left + Math.cos(ang) * rad,
