@@ -1484,6 +1484,7 @@ html[data-lang="fr"] [data-l="en"] { display: none !important; }
 .lb.is-on { display: grid; }
 
 .lb__frame {
+  position: relative;               /* le chargeur se cale sur le cadre */
   width: min(100%, 82rem);
   aspect-ratio: 16 / 9;
   background: #000;
@@ -1665,6 +1666,58 @@ html[data-lang="fr"] [data-l="en"] { display: none !important; }
 @media print {
   .bar, .foot, .lb, .skip { display: none; }
   body { background: #fff; color: #000; }
+}
+
+/* --- Chargement d'une vidéo ---------------------------------------------- *
+   Une grille de seize pixels, au centre du cadre, pendant que le lecteur
+   distant répond. Ils s'allument dans un ordre irrégulier plutôt qu'en
+   cercle : c'est la langue du site, pas un spinner de plus. L'iframe se pose
+   par-dessus en arrivant, donc rien à faire disparaître. */
+
+.lb__load {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 10px);
+  gap: 4px;
+  transform: translate(-50%, -50%);
+}
+.lb__load i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  opacity: .12;
+  animation: lbpx 1.5s steps(1) infinite;
+}
+/* Les délais ne suivent pas l'ordre de lecture : la grille clignote comme un
+   chargement de vieille image, par blocs, pas de gauche à droite. */
+.lb__load i:nth-child(1)  { animation-delay: 0s; }
+.lb__load i:nth-child(2)  { animation-delay: .55s; }
+.lb__load i:nth-child(3)  { animation-delay: .18s; }
+.lb__load i:nth-child(4)  { animation-delay: .93s; }
+.lb__load i:nth-child(5)  { animation-delay: .74s; }
+.lb__load i:nth-child(6)  { animation-delay: .09s; }
+.lb__load i:nth-child(7)  { animation-delay: 1.12s; }
+.lb__load i:nth-child(8)  { animation-delay: .37s; }
+.lb__load i:nth-child(9)  { animation-delay: 1.31s; }
+.lb__load i:nth-child(10) { animation-delay: .46s; }
+.lb__load i:nth-child(11) { animation-delay: .83s; }
+.lb__load i:nth-child(12) { animation-delay: .27s; }
+.lb__load i:nth-child(13) { animation-delay: 1.03s; }
+.lb__load i:nth-child(14) { animation-delay: .65s; }
+.lb__load i:nth-child(15) { animation-delay: 1.22s; }
+.lb__load i:nth-child(16) { animation-delay: .01s; }
+
+@keyframes lbpx {
+  0%, 22%  { opacity: 1; }
+  23%, 100% { opacity: .12; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb__load i { animation: none; opacity: .45; }
 }
 
 /* --- Navigation latérale ------------------------------------------------- *

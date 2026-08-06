@@ -115,8 +115,22 @@
     if (!lb) buildLightbox();
     lastFocus = document.activeElement;
     lb.setAttribute("aria-label", "Video player");
+    /* Un lecteur distant met une seconde ou deux à répondre, et pendant ce
+       temps la page est un rectangle noir sans rien dedans — on ne sait pas
+       si ça charge ou si c'est cassé. Une grille de pixels occupe l'attente,
+       et l'iframe la recouvre en arrivant : pas de disparition à orchestrer,
+       elle est simplement dessous. */
     lbFrame.innerHTML =
+      '<div class="lb__load" aria-hidden="true">' +
+      new Array(16).join("<i></i>") + "<i></i></div>" +
       '<iframe src="' + url + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+
+    var frame = lbFrame.querySelector("iframe");
+    frame.addEventListener("load", function () {
+      var l = lbFrame.querySelector(".lb__load");
+      if (l) l.remove();
+    });
+
     lb.classList.add("is-on");
     document.body.style.overflow = "hidden";
     lb.querySelector(".lb__close").focus();
