@@ -1266,8 +1266,28 @@
     if (!n || n > 12) return;              // a range like "01 — 04" is left alone
     el.classList.add("numstack");
     el.setAttribute("aria-label", String(n));
-    el.innerHTML = '<span class="vh">' + el.textContent.trim() + "</span>" +
-                   new Array(n + 1).join('<i></i>');
+    // A small cluster rather than a column: n cells lit inside a 3x4 grid,
+    // each in one of three tints of the accent. Deterministic — the same
+    // section always draws the same glyph — but shaped like a pixel doodle
+    // rather than a bar chart.
+    var CELLS = 12, seed = n * 2654435761;
+    var pick = [];
+    for (var i = 0; i < CELLS; i++) {
+      seed = (seed ^ (seed << 13)) >>> 0;
+      seed = (seed ^ (seed >>> 17)) >>> 0;
+      pick.push({ i: i, r: seed % 1000 });
+    }
+    pick.sort(function (a, b) { return a.r - b.r; });
+    var lit = {};
+    pick.slice(0, Math.min(CELLS, n + 3)).forEach(function (c, k) {
+      lit[c.i] = k % 3;                    // three shades, cycled
+    });
+
+    var out = '<span class="vh">' + el.textContent.trim() + "</span>";
+    for (var j = 0; j < CELLS; j++) {
+      out += j in lit ? '<i data-s="' + lit[j] + '"></i>' : "<i></i>";
+    }
+    el.innerHTML = out;
   });
 
   /* ---- Enquiry tabs --------------------------------------------------------- *
@@ -1285,13 +1305,54 @@
     var subject = form.querySelector('[name="subject"]');
     var msg = form.querySelector('[name="message"]');
 
+    var extra = form.querySelector(".cf-extra");
+
+    // What each enquiry actually needs asked. A submission has no budget and a
+    // quote has no showreel, so the fields follow the tab rather than sitting
+    // there greyed out.
+    var FIELDS = {
+      "Production enquiry": [
+        ["timing", "When", ["As soon as possible", "Within a month", "This quarter", "Just planning ahead"]],
+        ["scale",  "Scale", ["One shoot, one day", "A few days", "A full production", "A campaign, several pieces"]],
+        ["kind",   "What",  ["Music video", "Fashion film", "Commercial", "Live / event", "Something else"]],
+        ["where",  "Where", ["Los Angeles", "Paris", "Elsewhere in the US", "Elsewhere in Europe", "Further afield"]]
+      ],
+      "Quote request": [
+        ["timing", "Needed by", ["This week", "This month", "This quarter", "No fixed date"]],
+        ["scale",  "Scale",     ["One shoot, one day", "A few days", "A full production", "A campaign, several pieces"]],
+        ["budget", "Budget",    ["Under 10k", "10 – 30k", "30 – 80k", "80k and up", "Rather discuss it"]],
+        ["stage",  "Stage",     ["Just an idea", "Treatment written", "Script locked", "Ready to shoot"]]
+      ],
+      "Artist submission": [
+        ["craft",  "You are",  ["Director", "DP", "Editor", "Animator / 3D", "Musician", "Something else"]],
+        ["based",  "Based in", ["Los Angeles", "Paris", "Elsewhere in the US", "Elsewhere in Europe", "Further afield"]],
+        ["years",  "Doing it", ["Just starting", "A few years", "Five years or more", "A long time"]]
+      ],
+      "Something else": []
+    };
+
+    function render(topic) {
+      if (!extra) return;
+      extra.innerHTML = (FIELDS[topic] || []).map(function (f) {
+        return '<label class="vh" for="cf-' + f[0] + '">' + f[1] + "</label>" +
+               '<select id="cf-' + f[0] + '" name="' + f[0] + '">' +
+               '<option value="">' + f[1] + " — pick one</option>" +
+               f[2].map(function (o) { return "<option>" + o + "</option>"; }).join("") +
+               "</select>";
+      }).join("");
+    }
+
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
         tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); });
-        if (subject) subject.value = tab.getAttribute("data-topic") || "";
+        var topic = tab.getAttribute("data-topic") || "";
+        if (subject) subject.value = topic;
         if (msg) msg.placeholder = tab.getAttribute("data-prompt") || "Your message";
+        render(topic);
       });
     });
+
+    render(subject ? subject.value : "");
   })();
 
   /* ---- Year stamp -------------------------------------------------------- */
