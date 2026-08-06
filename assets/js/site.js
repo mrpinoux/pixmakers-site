@@ -451,7 +451,7 @@
             ch.className = "ch";
             ch.textContent = c;
             wd.appendChild(ch);
-            chars.push({ el: ch, x: 0, y: 0, s: 1, cx: 0, cy: 0, w: 0, h: 0, col: "#fff" });
+            chars.push({ el: ch, x: 0, y: 0, s: 1, cx: 0, cy: 0, w: 0, h: 0, col: "#fff", g: "" });
           });
           frag.appendChild(wd);
         });
@@ -566,8 +566,8 @@
                     .getPropertyValue("--ink") || "#0b0b0b").trim();
     var glyphs = {};
 
-    function glyph(ch, w, h, block, col) {
-      var key = ch + "|" + w + "|" + h + "|" + block + "|" + col;
+    function glyph(ch, w, h, block, col, fs) {
+      var key = ch + "|" + w + "|" + h + "|" + block + "|" + col + "|" + fs;
       if (glyphs[key]) return glyphs[key];
       var lw = Math.max(2, Math.round(w / block));
       var lh = Math.max(2, Math.round(h / block));
@@ -576,13 +576,25 @@
       var gx = g.getContext("2d");
       gx.fillStyle = BACK;
       gx.fillRect(0, 0, lw, lh);
-      // expanded ≈ the wdth 125 the heading runs at; canvas has no variation
-      // axes, so this is the closest the shorthand can get.
-      gx.font = "expanded 900 " + (h / block * .78) + "px " + FAMILY;
+
+      // The real font size, divided down by the block — deriving it from the
+      // tile instead is what made the patch come out undersized.
+      gx.font = "expanded 900 " + (fs / block) + "px " + FAMILY;
+      // wdth 125 in the heading. The shorthand keyword is the closest canvas
+      // gets to a variation axis; fontStretch lands it where supported.
+      if ("fontStretch" in gx) gx.fontStretch = "expanded";
+
+      // Sit the glyph on the same baseline the inline box gives it: half the
+      // leading, then the ascent. Centring on the tile put it low, because a
+      // line box is taller than the ink and the slack is not symmetrical.
+      var m = gx.measureText("H");
+      var asc  = m.fontBoundingBoxAscent  || fs / block * .8;
+      var desc = m.fontBoundingBoxDescent || fs / block * .2;
+
       gx.fillStyle = col;
       gx.textAlign = "center";
-      gx.textBaseline = "middle";
-      gx.fillText(ch, lw / 2, lh / 2);
+      gx.textBaseline = "alphabetic";
+      gx.fillText(ch, lw / 2, (lh - (asc + desc)) / 2 + asc);
       glyphs[key] = g;
       return g;
     }
@@ -600,9 +612,25 @@
       ex.clip();
       for (var i = 0; i < list.length; i++) {
         var g = list[i];
-        ex.drawImage(glyph(g.ch, g.w, g.h, g.b, g.col), g.x, g.y, g.w, g.h);
+        // Whole pixels. Drawn at fractional coordinates the blocks resample
+        // slightly differently each frame, which is the other half of the
+        // shimmer.
+        ex.drawImage(glyph(g.ch, g.tw, g.th, g.b, g.col, g.fs),
+                     Math.round(g.x), Math.round(g.y),
+                     Math.round(g.w), Math.round(g.h));
       }
       ex.restore();
+
+      // Soften the rim: keep what is already drawn, weighted by a radial ramp,
+      // so the patch dissolves into the sharp type instead of ending on a hard
+      // circular cut.
+      ex.globalCompositeOperation = "destination-in";
+      var ramp = ex.createRadialGradient(cxp, cyp, ERODE_R * .55, cxp, cyp, ERODE_R);
+      ramp.addColorStop(0, "rgba(0,0,0,1)");
+      ramp.addColorStop(1, "rgba(0,0,0,0)");
+      ex.fillStyle = ramp;
+      ex.fillRect(0, 0, erode.width / dpr, erode.height / dpr);
+      ex.globalCompositeOperation = "source-over";
     }
 
     function drawDust() {
@@ -631,7 +659,13 @@
         c.cy = r.top + r.height / 2 - c.y;
         c.w = r.width;
         c.h = r.height;
-        c.col = getComputedStyle(c.el).color;
+        var ecs = getComputedStyle(c.el);
+        c.col = ecs.color;
+        // Canvas draws the source text; text-transform is a CSS-only affair,
+        // so the tile came out lowercase while the page showed capitals.
+        c.g = ecs.textTransform === "uppercase" ? c.el.textContent.toUpperCase()
+            : ecs.textTransform === "lowercase" ? c.el.textContent.toLowerCase()
+            : c.el.textContent;
       });
       // Char centres are viewport-based; the canvas is not. Cache the offset
       // here rather than reading it every frame — and take it from the canvas,
@@ -685,11 +719,24 @@
           if (Math.abs(lx - px) < ERODE_R + lw / 2 &&
               Math.abs(ly - py) < ERODE_R + lh / 2) {
             ghosts.push({
-              ch: c.el.textContent,
+              ch: c.g || c.el.textContent,
+              // The tile is built from the letter's resting box at its resting
+              // size, and stretched to the live one by drawImage. Keying it to
+              // the animated size instead regenerated it constantly, and each
+              // new tile popped.
+              fs: unit,
               x: lx - lw / 2 - zoneRect.left,
               y: ly - lh / 2 - zoneRect.top,
               w: lw, h: lh,
-              b: Math.min(18, 6 + mag / 7) | 0,
+              tw: c.w, th: c.h,
+              // Keyed to how close the pointer is, not to how far the letter
+              // has been thrown: displacement oscillates while a letter eases
+              // home, so the grid kept resizing under a motionless pointer.
+              // Quantised to five steps on top of that.
+              // Clamped at both ends: past the disc the expression goes
+              // negative, and a block of zero divides the tile by nothing.
+              b: 6 + 3 * Math.max(0, Math.min(4,
+                   (4 - Math.hypot(lx - px, ly - py) / (ERODE_R / 3)) | 0)),
               col: c.col
             });
           }
