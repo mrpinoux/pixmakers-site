@@ -446,6 +446,52 @@ h1.shead__title {
 
 /* --- Work grid (contact sheet) ------------------------------------------- */
 
+/* Filter bar above a long grid. Built by site.js only where there is enough
+   work to need it, and only with the controls the grid can actually fill. */
+.wfilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  align-items: stretch;
+  margin-bottom: clamp(1rem, 2.5vw, 1.75rem);
+}
+.wfilter input,
+.wfilter select,
+.wfilter__sort {
+  padding: .85rem 1.1rem;
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  background: var(--ink-soft);
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px var(--rule-dark);
+  appearance: none;
+}
+.wfilter input { flex: 1 1 16rem; min-width: 0; }
+.wfilter input::placeholder { color: var(--on-dark-muted); text-transform: uppercase; }
+.wfilter select,
+.wfilter__sort { cursor: pointer; }
+.wfilter select option { background: var(--ink); }
+.wfilter__sort { color: var(--accent); white-space: nowrap; }
+.wfilter__sort:hover { background: var(--accent); color: var(--on-accent); }
+.wfilter :focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.wfilter__count {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+  padding-left: 1rem;
+}
+.paper .wfilter input,
+.paper .wfilter select,
+.paper .wfilter__sort {
+  color: var(--on-light);
+  background: var(--paper-soft);
+  box-shadow: 0 0 0 1px var(--rule-light);
+}
+
 .sheet {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));

@@ -1375,6 +1375,91 @@
     a.appendChild(img);
   });
 
+  /* ---- Filtering a work grid ------------------------------------------------ *
+   * Built only where a grid is long enough to need it. Search reads the title
+   * and the client; the category list is built from the values actually on the
+   * tiles, so a grid never offers a filter that would return nothing.
+   *
+   * Dates are never shown — the work stays undated on the page — but they are
+   * carried on the tiles so the grid can be ordered by them. Anything with no
+   * date on record sinks to the bottom either way rather than being hidden:
+   * roughly half the archive predates any note of when it was made.
+   * -------------------------------------------------------------------------- */
+
+  document.querySelectorAll(".sheet").forEach(function (sheet) {
+    var tiles = [].slice.call(sheet.querySelectorAll(".work"));
+    if (tiles.length < 8) return;
+
+    function values(attr) {
+      var seen = {};
+      tiles.forEach(function (t) {
+        var v = t.getAttribute(attr);
+        if (v) seen[v] = 1;
+      });
+      return Object.keys(seen).sort();
+    }
+    var cats = values("data-cat");
+
+    function options(list, label) {
+      return '<option value="">' + label + "</option>" +
+             list.map(function (v) { return "<option>" + v + "</option>"; }).join("");
+    }
+
+    var bar = document.createElement("div");
+    bar.className = "wfilter";
+    bar.innerHTML =
+      '<input type="search" class="wfilter__q" placeholder="Search a title or a client" aria-label="Search work">' +
+      (cats.length > 1 ? '<select class="wfilter__cat" aria-label="Category">' + options(cats, "All categories") + "</select>" : "") +
+      '<button type="button" class="wfilter__sort" data-dir="desc">Newest first</button>' +
+      '<p class="wfilter__count meta" aria-live="polite"></p>';
+    sheet.parentNode.insertBefore(bar, sheet);
+
+    var q = bar.querySelector(".wfilter__q");
+    var cat = bar.querySelector(".wfilter__cat");
+    var sort = bar.querySelector(".wfilter__sort");
+    var count = bar.querySelector(".wfilter__count");
+
+    function text(t) {
+      var a = t.querySelector(".work__title"), b = t.querySelector(".work__client");
+      return ((a ? a.textContent : "") + " " + (b ? b.textContent : "")).toLowerCase();
+    }
+
+    function apply() {
+      var term = (q.value || "").trim().toLowerCase();
+      var c = cat ? cat.value : "";
+      var shown = 0;
+      tiles.forEach(function (t) {
+        var ok = (!term || text(t).indexOf(term) > -1) &&
+                 (!c || t.getAttribute("data-cat") === c);
+        t.hidden = !ok;
+        if (ok) shown++;
+      });
+
+      var dir = sort.getAttribute("data-dir") === "asc" ? 1 : -1;
+      tiles.slice().sort(function (a, b) {
+        var ya = a.getAttribute("data-year"), yb = b.getAttribute("data-year");
+        if (!ya && !yb) return 0;
+        if (!ya) return 1;              // undated sinks, whichever way round
+        if (!yb) return -1;
+        return (ya - yb) * dir;
+      }).forEach(function (t) { sheet.appendChild(t); });
+
+      count.textContent = shown === tiles.length
+        ? tiles.length + " pieces"
+        : shown + " of " + tiles.length;
+    }
+
+    q.addEventListener("input", apply);
+    if (cat) cat.addEventListener("change", apply);
+    sort.addEventListener("click", function () {
+      var asc = sort.getAttribute("data-dir") === "asc";
+      sort.setAttribute("data-dir", asc ? "desc" : "asc");
+      sort.textContent = asc ? "Newest first" : "Oldest first";
+      apply();
+    });
+    apply();
+  });
+
   /* ---- Year stamp -------------------------------------------------------- */
 
   document.querySelectorAll("[data-year]").forEach(function (el) {
