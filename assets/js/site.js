@@ -111,9 +111,20 @@
     });
   }
 
-  function openLightbox(url) {
+  /* Une vidéo ouverte a sa propre adresse : #v=youtube:xxxx. Elle se partage,
+     elle se met en signet, et le bouton Retour du navigateur referme la
+     lightbox au lieu de quitter la page. */
+  var lbSpec = null;
+  var lbPushed = false;   // avons-nous empilé une entrée, ou héritons-nous de l'adresse ?
+
+  function openLightbox(url, spec, quiet) {
     if (!lb) buildLightbox();
     lastFocus = document.activeElement;
+    lbSpec = spec || null;
+    if (spec && !quiet && history.pushState) {
+      history.pushState({ lb: spec }, "", "#v=" + spec);
+      lbPushed = true;
+    }
     lb.setAttribute("aria-label", "Video player");
     /* Un lecteur distant met une seconde ou deux à répondre, et pendant ce
        temps la page est un rectangle noir sans rien dedans — on ne sait pas
@@ -185,14 +196,56 @@
     openPhoto((shotAt + d + shots.length) % shots.length);   // wraps both ways
   }
 
-  function closeLightbox() {
+  function closeLightbox(quiet) {
     if (!lb || !lb.classList.contains("is-on")) return;
     lb.classList.remove("is-on", "lb--photo");
     lbFrame.innerHTML = "";          // stops playback
     shotAt = -1;
     document.body.style.overflow = "";
     if (lastFocus) lastFocus.focus();
+
+    /* Si l'entrée était à nous, on la rend : le Retour du navigateur retrouve
+       la page telle qu'elle était. Mais quand on arrive *directement* sur
+       l'adresse d'une vidéo, l'entrée précédente n'est pas à nous — c'est le
+       site d'où vient le visiteur, ou rien. Revenir en arrière le ferait
+       sortir du site en fermant une lightbox. On se contente alors d'effacer
+       l'ancre. */
+    if (lbSpec && !quiet) {
+      if (lbPushed) history.back();
+      else if (history.replaceState) {
+        history.replaceState({}, "", location.pathname + location.search);
+      }
+    }
+    lbSpec = null;
+    lbPushed = false;
   }
+
+  /* Retour / suivant du navigateur : l'état fait foi. */
+  addEventListener("popstate", function (e) {
+    var spec = e.state && e.state.lb ? e.state.lb : fromHash();
+    if (spec) {
+      var url = embedUrl(spec);
+      if (url) { closeLightbox(true); openLightbox(url, spec, true); lbPushed = true; }
+    } else {
+      closeLightbox(true);
+    }
+  });
+
+  function fromHash() {
+    var m = /^#v=(.+)$/.exec(location.hash || "");
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  /* Arrivée directe sur une adresse de vidéo : on l'ouvre, sans empiler une
+     entrée d'historique de plus — celle du navigateur est déjà la bonne. */
+  addEventListener("DOMContentLoaded", function () {
+    var spec = fromHash();
+    if (!spec) return;
+    var url = embedUrl(spec);
+    if (!url) return;
+    if (history.replaceState) history.replaceState({ lb: spec }, "", location.href);
+    openLightbox(url, spec, true);
+  });
 
   document.addEventListener("click", function (e) {
     var shot = e.target.closest("[data-shot]");
@@ -206,10 +259,11 @@
     }
     var trigger = e.target.closest("[data-video]");
     if (!trigger) return;
-    var url = embedUrl(trigger.getAttribute("data-video"));
+    var spec = trigger.getAttribute("data-video");
+    var url = embedUrl(spec);
     if (!url) return;                // no id yet — let the link behave normally
     e.preventDefault();
-    openLightbox(url);
+    openLightbox(url, spec);
   });
 
   document.addEventListener("keydown", function (e) {
