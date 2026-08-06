@@ -325,6 +325,18 @@ h1.shead__title {
 }
 .hero__inner { position: relative; z-index: 1; }
 
+/* The creed. Sits under the rule with the strapline, set narrow and quiet —
+   it is there to be found by someone who lingers, not to compete with the
+   heading above it. */
+.hero__creed {
+  max-width: 62ch;
+  margin-top: clamp(1.5rem, 3.5vw, 2.5rem);
+  color: var(--on-dark-muted);
+  font-size: var(--t-body);
+  line-height: 1.7;
+}
+.hero__creed em { font-style: normal; color: var(--on-dark); }
+
 /* Pixel dust, thrown off the letters by the scatter. Behind the type — the
    motes pass under the letters rather than over them, which keeps the heading
    clean and reads as debris falling away. Above .hero__bg, below .hero__inner.
@@ -452,10 +464,9 @@ h1.shead__title {
    to colour and pushes in behind a scrim, and the play mark snaps to size at
    dead centre. Below, only a rule wipes under the title. Everything is
    transform and opacity, so no tile is ever re-measured. */
-.work,
-.card { isolation: isolate; }
-.work__media,
-.card__media { z-index: 1; }
+.work { isolation: isolate; }
+.card { isolation: isolate; overflow: visible; }
+.work__media { z-index: 1; }
 .work__media > img,
 .card__media > img { transition: transform .35s var(--ease); }
 .work:hover .work__media > img,
@@ -512,18 +523,20 @@ h1.shead__title {
    no easing drift — .14s, and it has landed. Both transform and box-shadow, so
    the grid never reflows and the block can overlap its neighbours. */
 .work,
-.card {
+.card__media {
   z-index: 0;
   transition: transform .14s var(--ease), box-shadow .14s var(--ease);
 }
+/* On a card it is the picture that goes off-register, not the whole block —
+   the caption underneath is type, and type does not misprint with it. */
 .work:hover, .work:focus-visible,
-.card:hover, .card:focus-visible {
+.card:hover .card__media, .card:focus-visible .card__media {
   z-index: 3;
   transform: translate(-7px, -7px);
   box-shadow: 13px 13px 0 0 var(--accent), 0 0 0 1px var(--rule-dark);
 }
 .paper .work:hover, .paper .work:focus-visible,
-.paper .card:hover, .paper .card:focus-visible {
+.paper .card:hover .card__media, .paper .card:focus-visible .card__media {
   box-shadow: 13px 13px 0 0 var(--accent), 0 0 0 1px var(--rule-light);
 }
 

@@ -476,6 +476,9 @@
     var unit = parseFloat(getComputedStyle(title).fontSize) || 100;
     var k    = Math.max(.32, Math.min(1, unit / 150));
 
+    // Display headings throw coarser debris than section heads — at that size
+    // the fine grain reads as dirt on the screen.
+    var GRAIN  = k > .7 ? 2 : 1;
     var RADIUS = 250 * k;   // px of influence around the pointer
     var PUSH   = 68 * k;    // px a letter travels at the very centre
     var SCALE  = .52;       // extra size at the very centre, 1.52x
@@ -547,9 +550,9 @@
         // Two bands, stated absolutely rather than as a multiplier — a 1px
         // grain tripled is still 3px, which is why the split has to be on the
         // final size. Three in four land in the coarse band.
-        s: Math.random() < .75
-             ? 3 + ((Math.random() * 7) | 0)      // 3–9 px, the 300% band
-             : 1 + ((Math.random() * 3) | 0),     // 1–3 px, the original grain
+        s: GRAIN * (Math.random() < .75
+             ? 3 + ((Math.random() * 7) | 0)      // 3–9 px, the coarse band
+             : 1 + ((Math.random() * 3) | 0)),    // 1–3 px, the fine grain
         // Lifetimes spread wide and multiplicatively, plus a random hold at
         // full opacity before the decay starts. A narrow additive range made
         // a burst of motes wink out together; this staggers them.
@@ -757,7 +760,8 @@
           }
         }
 
-        if (stirring && (tx || ty) && mag > 4 && Math.random() < Math.min(.6, mag / 42)) {
+        // Half as many as before.
+        if (stirring && (tx || ty) && mag > 4 && Math.random() < Math.min(.3, mag / 84)) {
           var ang = Math.random() * Math.PI * 2;
           var rad = Math.sqrt(Math.random()) * ERODE_R;
           shed(px - zoneRect.left + Math.cos(ang) * rad,
