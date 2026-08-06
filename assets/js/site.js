@@ -1405,7 +1405,9 @@
       });
       return Object.keys(seen).sort();
     }
-    var cats = values("data-cat");
+    var cats   = values("data-cat");
+    var styles = values("data-style");
+    var locs   = values("data-loc");
 
     function artistOf(t) {
       var c = t.querySelector(".work__client");
@@ -1429,16 +1431,23 @@
     bar.innerHTML =
       '<input type="search" class="wfilter__q" placeholder="Search a title or a client" aria-label="Search work">' +
       (cats.length > 1 ? '<select class="wfilter__cat" aria-label="Category">' + options(cats, "All categories") + "</select>" : "") +
+      (styles.length > 1 ? '<select class="wfilter__style" aria-label="Musical style">' + options(styles, "All styles") + "</select>" : "") +
+      (locs.length > 1 ? '<select class="wfilter__loc" aria-label="Location">' + options(locs, "All locations") + "</select>" : "") +
       (artists.length > 1 ? '<select class="wfilter__artist" aria-label="Artist">' + options(artists, "All artists") + "</select>" : "") +
       '<button type="button" class="wfilter__sort" data-dir="desc">Newest first</button>' +
-      '<p class="wfilter__count meta" aria-live="polite"></p>';
+      '<p class="wfilter__count meta" aria-live="polite"></p>' +
+      '<button type="button" class="wfilter__clear" hidden ' +
+      'aria-label="Clear the filters" title="Clear the filters">×</button>';
     sheet.parentNode.insertBefore(bar, sheet);
 
     var q = bar.querySelector(".wfilter__q");
     var cat = bar.querySelector(".wfilter__cat");
+    var sty = bar.querySelector(".wfilter__style");
+    var loc = bar.querySelector(".wfilter__loc");
     var art = bar.querySelector(".wfilter__artist");
     var sort = bar.querySelector(".wfilter__sort");
     var count = bar.querySelector(".wfilter__count");
+    var clear = bar.querySelector(".wfilter__clear");
 
     function text(t) {
       var a = t.querySelector(".work__title"), b = t.querySelector(".work__client");
@@ -1448,10 +1457,13 @@
     function apply() {
       var term = (q.value || "").trim().toLowerCase();
       var c = cat ? cat.value : "", a = art ? art.value : "";
+      var st = sty ? sty.value : "", lo = loc ? loc.value : "";
       var shown = 0;
       tiles.forEach(function (t) {
         var ok = (!term || text(t).indexOf(term) > -1) &&
                  (!c || t.getAttribute("data-cat") === c) &&
+                 (!st || t.getAttribute("data-style") === st) &&
+                 (!lo || t.getAttribute("data-loc") === lo) &&
                  (!a || artistOf(t) === a);
         t.hidden = !ok;
         if (ok) shown++;
@@ -1469,11 +1481,26 @@
       count.textContent = shown === tiles.length
         ? tiles.length + " pieces"
         : shown + " of " + tiles.length;
+
+      /* Nothing to undo, nothing to show. The button only appears once a
+         filter is actually narrowing the grid. */
+      clear.hidden = !(term || c || st || lo || a);
     }
 
     q.addEventListener("input", apply);
     if (cat) cat.addEventListener("change", apply);
+    if (sty) sty.addEventListener("change", apply);
+    if (loc) loc.addEventListener("change", apply);
     if (art) art.addEventListener("change", apply);
+    /* Clears the filters, not the sort: the sort has its own label saying
+       what it is doing, and silently flipping it back would be a surprise. */
+    clear.addEventListener("click", function () {
+      q.value = "";
+      [cat, sty, loc, art].forEach(function (el) { if (el) el.value = ""; });
+      apply();
+      q.focus();
+    });
+
     sort.addEventListener("click", function () {
       var asc = sort.getAttribute("data-dir") === "asc";
       sort.setAttribute("data-dir", asc ? "desc" : "asc");
