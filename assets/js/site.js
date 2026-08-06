@@ -555,8 +555,7 @@
         // a burst of motes wink out together; this staggers them.
         life: 1 + Math.random() * .9,
         fade: .010 * (.4 + Math.random() * 2.4),
-        col: col || PALETTE[(Math.random() * PALETTE.length) | 0],
-        calm: !!calm
+        col: PALETTE[(Math.random() * PALETTE.length) | 0]
       });
     }
 
@@ -887,15 +886,13 @@
           // grows from the left going in, and collapses to the right coming
           // out. Pixels are shoved ahead of it.
           var ex = fr.out ? r.left + r.width * p : r.left + r.width * p;
-          // On the way out the fill is what is leaving, so the pixels it
-          // sheds are its own colour rather than the whole palette.
-          var rc = fr.out ? PALETTE[0] : null;
-          for (var i = 0; i < 2; i++) {
-            if (Math.random() < .25) continue;
-            add(ex + (Math.random() - .5) * 10,
-                r.top + Math.random() * r.height,
-                2.6 + Math.random() * 3.4, (Math.random() - .5) * 1.6, rc);
-          }
+          // Only on the way out, and only in the fill's own colour. Arriving,
+          // the row already has the wipe to carry it; pixels there were noise
+          // on top of a gesture that did not need them.
+          if (Math.random() < .45) continue;
+          add(ex + (Math.random() - .5) * 10,
+              r.top + Math.random() * r.height,
+              2.6 + Math.random() * 3.4, (Math.random() - .5) * 1.6, PALETTE[0]);
         } else {
           // The tile steps up and left; the accent is uncovered along its
           // right and bottom edges, and the pixels go the other way.
@@ -958,7 +955,10 @@
 
     function wire(sel, kind) {
       document.querySelectorAll(sel).forEach(function (el) {
-        el.addEventListener("mouseenter", function () { launch(el, kind, false); });
+        // Rows only throw on the way out.
+        if (kind !== "row") {
+          el.addEventListener("mouseenter", function () { launch(el, kind, false); });
+        }
         el.addEventListener("mouseleave", function () { launch(el, kind, true); });
       });
     }
