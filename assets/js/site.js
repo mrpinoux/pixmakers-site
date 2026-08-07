@@ -1177,16 +1177,16 @@
              logo, la marque continue de lâcher des pixels. */
           if (!brandOn) { fronts.splice(f, 1); continue; }
           fr.t0 = now;                       // elle ne s'épuise pas d'elle-même
-          /* Ça tombe, ça n'explose pas. Une gerbe dans toutes les directions
-             faisait feu d'artifice ; le mot lâche maintenant ses pixels vers
-             le bas, sur toute sa largeur, avec juste assez de jeu latéral
-             pour que la colonne ne soit pas une règle. */
-          for (var q = 0; q < 6; q++) {
-            add(r.left + Math.random() * r.width,
-                r.bottom - 2 + Math.random() * 4,
-                (Math.random() - .5) * .5,          // presque droit
-                .5 + Math.random() * 1.6);
-          }
+          /* Des gouttes, pas une averse. Six pixels par image tombant chacun
+             de son côté faisaient une pluie continue ; le mot lâche maintenant
+             une goutte de temps en temps — quelques pixels soudés, calés sur
+             un pas fixe, qui descendent ensemble. La grille se lit parce que
+             les départs sont alignés et rares, pas parce qu'ils sont nombreux. */
+          var PITCH = 10;
+          var cols = Math.max(2, Math.round(r.width / PITCH));
+          if (Math.random() < .82) continue;        // une image sur cinq environ
+          var col = (Math.random() * cols) | 0;
+          fallColumn(r.left + col * (r.width / cols), r.bottom, null, true);
           continue;
         }
 
