@@ -1420,35 +1420,33 @@
         }
       });
 
-      /* Une vignette se recouvre en sortant : la grille doit se relire d'un
-         coup d'œil, pas garder la trace de tous les survols de la visite. */
-      if (o.reveil) {
-        box.addEventListener("mouseleave", function () {
-          if (!ready) return;
-          cx.globalCompositeOperation = "source-over";
-          cx.globalAlpha = 1;
-          cx.clearRect(0, 0, w, h);
-          cx.drawImage(off, 0, 0, w, h);
-          remain.fill(1);
-        });
-      }
     }
 
     document.querySelectorAll(".profile__portrait").forEach(function (box) {
       mosaic(box, { block: 13, brush: 96 });
     });
 
-    /* Les vignettes, elles, ne se préparent qu'au premier survol : monter
-       soixante-neuf mosaïques au chargement coûterait cher pour un effet que
-       la plupart ne verront jamais. */
-    document.querySelectorAll(".work__media").forEach(function (media) {
-      var armed = false;
-      media.addEventListener("mouseenter", function () {
-        if (armed) return;
-        armed = true;
-        mosaic(media, { block: 8, brush: 46, reveil: true });
-      });
-    });
+    /* Les vignettes sont couvertes d'emblée, comme un portrait : on doit voir
+       la grille pixelisée avant d'y toucher, sinon rien n'invite à frotter.
+       Mais on ne monte la mosaïque qu'à l'approche de l'écran — soixante-neuf
+       canvas d'un coup au chargement, c'est cher pour des vignettes qu'on ne
+       verra peut-être jamais. Ce qui est dégagé le reste : repasser continue
+       de révéler, et seul un rechargement remet tout à zéro. */
+    var tiles = document.querySelectorAll(".work__media");
+    if (tiles.length) {
+      if (window.IntersectionObserver) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (!e.isIntersecting) return;
+            io.unobserve(e.target);
+            mosaic(e.target, { block: 8, brush: 46 });
+          });
+        }, { rootMargin: "300px" });      // prêtes avant d'entrer dans le champ
+        tiles.forEach(function (t) { io.observe(t); });
+      } else {
+        tiles.forEach(function (t) { mosaic(t, { block: 8, brush: 46 }); });
+      }
+    }
   })();
 
   /* ---- Images resolve out of a mosaic -------------------------------------- *
