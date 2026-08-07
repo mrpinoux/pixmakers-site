@@ -991,7 +991,9 @@ h1.shead__title {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(2rem, 5vw, 4.5rem);
-  align-items: start;
+  /* Etire, pas cale en haut : c'est le texte qui donne la hauteur de la
+     rangee, et la photo vient s'y ajuster. */
+  align-items: stretch;
 }
 @media (min-width: 60rem) {
   .about { grid-template-columns: 1fr 1fr; }
@@ -1023,17 +1025,24 @@ h1.shead__title {
 }
 .paper .about__shot { border-color: var(--rule-light); }
 .about__shot:hover { filter: none; }
-/* Bornee a la fenetre, moins la barre : une image de 1600 px de haut dans une
-   colonne de 700 poussait la page bien au-dela de l'ecran, et on ne voyait
-   jamais la photo en entier. Elle se recadre par le centre plutot que de
-   s'etirer. */
+/* La photo prend exactement la hauteur du texte. Elle est posee en absolu, ce
+   qui est le point : un enfant en absolu ne compte pas dans la hauteur de son
+   parent, donc la rangee est mesuree sur la colonne de texte seule, et le
+   cadre s'etire dessus. En flux, l'image de 1600 px imposait sa taille et
+   depassait le bas du texte de plusieurs centaines de pixels. */
 .about__shot > img {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  max-height: calc(100vh - var(--bar-h));
+  height: 100%;
   object-fit: cover;
   object-position: center;
+}
+/* En une colonne il n'y a plus de voisin pour donner la hauteur : le cadre
+   se la fabrique. */
+.about__shot { aspect-ratio: 3 / 4; }
+@media (min-width: 60rem) {
+  .about__shot { aspect-ratio: auto; }
 }
 
 /* --- Director profile ---------------------------------------------------- */
