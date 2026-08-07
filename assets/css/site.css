@@ -306,7 +306,11 @@ h1.shead__title {
 
 .hero {
   position: relative;
-  min-height: min(86vh, 54rem);
+  /* Le hero avait ete taille pour un credo de sept lignes qui vit maintenant
+     sur la page « A propos ». A 86vh il restait quatre cent cinquante pixels
+     de texture au-dessus du titre — un vide qui ne se lit plus comme une
+     respiration mais comme un chargement rate. */
+  min-height: min(68vh, 42rem);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -975,6 +979,39 @@ h1.shead__title {
   color: var(--on-dark-muted);
 }
 .paper .doing__note { color: var(--on-light-muted); }
+
+/* --- À propos ------------------------------------------------------------- */
+
+/* Une colonne de texte, tenue a une largeur de lecture, et une image a cote.
+   Pas deux colonnes de texte : le meme paragraphe en deux blocs oblige l'oeil
+   a descendre puis a remonter, et sur un ecran large les lignes filaient a
+   quatre-vingt-dix signes. Ici la mesure est bornee, quelle que soit la
+   largeur de la fenetre. */
+.about {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+}
+.about__text { max-width: 58ch; }
+.about__text > p + p { margin-top: 1.15em; }
+.about__lead {
+  font-size: var(--t-md);
+  font-variation-settings: "wdth" 100, "wght" 600;
+  line-height: 1.35;
+}
+.about__where { margin-top: 2rem; }
+.about__go { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
+.about__shot {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--rule-dark);
+  filter: grayscale(1) contrast(1.08);
+  transition: filter .35s var(--ease);
+}
+.paper .about__shot { border-color: var(--rule-light); }
+.about__shot:hover { filter: none; }
+.about__shot > img { display: block; width: 100%; height: auto; }
 
 /* --- Director profile ---------------------------------------------------- */
 
