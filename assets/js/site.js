@@ -1103,6 +1103,7 @@
     var motes = [], fronts = [], running = false;
     var brandOn = false;
     var brandX = null;      // où le curseur se trouve sur le mot
+    var brandY = null;      // le halo est rond : il lui faut les deux axes
     var brandEl = null;
 
     // Matches the CSS easing on both shapes, so the pixels ride the same curve
@@ -1193,7 +1194,15 @@
     var LEVELS = [1, .5, .1];     // ce qu'il reste après 0, 1 et 2 pas
     var HOLD   = 8;               // images tenues sur un palier, au minimum
     var SEED   = 8;               // une fournée de cases neuves tous les N
-    var PAD    = 14;              // ce que la zone déborde du mot
+    var PAD    = 36;              // ce que la zone déborde du mot
+    /* Portée du halo, en cases, et volontairement pas la même sur les deux
+       axes : le mot est large et bas, donc la zone aussi — 53 cases sur 15.
+       Un halo rond y perdait la moitié de ses tirages hors du cadre, en haut
+       et en bas, et ce qui restait était plus maigre que prévu. L'ellipse
+       épouse la zone : presque rien n'est jeté, et la densité annoncée est
+       celle qu'on obtient. */
+    var REACH_X = 10;
+    var REACH_Y = 5;
     /* Trois teintes de l'accent, rien d'autre. La palette à quatre couleurs
        appartient à la poussière des vignettes ; sur le logo elle faisait
        guirlande. Même parti que l'amas des numéros de section. */
@@ -1216,30 +1225,59 @@
          au-dessus d'un calque qui vit dehors. On ne peint donc pas dessus —
          le résultat à l'œil est le même, et les pixels encadrent le mot au
          lieu de le manger. */
+      var y0 = Math.floor((r.top - PAD) / GRID) * GRID;
+      var y1 = y0 + Math.ceil((r.height + PAD * 2) / GRID) * GRID;
+
+      /* La zone s'arrête au bandeau. Elle déborde du mot d'assez pour qu'on
+         voie quelque chose, et le bandeau ne fait que quelques dizaines de
+         pixels : sans cette coupe, la moitié du halo tombait sur le hero, en
+         dessous, où des carrés roses sur les rayures n'ont plus rien à voir
+         avec le logo. On serre donc sur le noir de la barre, en gardant les
+         bords sur la grille pour que les cases restent alignées. */
+      var bar = el.closest && el.closest(".bar");
+      if (bar) {
+        var b = bar.getBoundingClientRect();
+        y0 = Math.max(y0, Math.ceil(b.top / GRID) * GRID);
+        y1 = Math.min(y1, Math.floor(b.bottom / GRID) * GRID);
+      }
+
       zone = {
         x: Math.floor((r.left - PAD) / GRID) * GRID,
-        y: Math.floor((r.top - PAD) / GRID) * GRID,
+        y: y0,
         w: Math.ceil((r.width + PAD * 2) / GRID) * GRID,
-        h: Math.ceil((r.height + PAD * 2) / GRID) * GRID,
+        h: Math.max(GRID, y1 - y0),
         hole: { left: r.left - 1, right: r.right + 1, top: r.top - 1, bottom: r.bottom + 1 }
       };
     }
 
     /* Un tirage par pas d'horloge : quelques cases neuves, choisies plus
-       volontiers près du pointeur, et tout le reste vieillit d'un cran. */
+       volontiers près du pointeur, et tout le reste vieillit d'un cran.
+       Le tirage est rond, pas en colonne. La version d'avant contraignait la
+       colonne à cinq cases autour du curseur et laissait la ligne libre sur
+       toute la hauteur : chaque pixel tombait donc dans une bande verticale,
+       et c'est une bande qu'on voyait. On tire maintenant un angle et un
+       rayon, ce qui donne un halo — dense au centre, qui s'effiloche vers le
+       bord, sans direction privilégiée. */
     function seedCells() {
       if (!zone) return;
       var cols = Math.max(1, zone.w / GRID), rows = Math.max(1, zone.h / GRID);
-      var n = 3 + ((Math.random() * 4) | 0);
+      /* Plus de cases par tirage qu'avant : la zone a plus que doublé, et le
+         même débit y aurait paru deux fois plus maigre. */
+      var n = 8 + ((Math.random() * 7) | 0);
       for (var i = 0; i < n; i++) {
         var c, rw;
-        if (brandX !== null && Math.random() < .72) {
-          // près du curseur, dans une bande de cinq cases
-          c = Math.round((brandX - zone.x) / GRID) + ((Math.random() * 5) | 0) - 2;
+        if (brandX !== null && Math.random() < .78) {
+          var ang = Math.random() * Math.PI * 2;
+          /* La racine sur le tirage étale le halo : sans elle, la moitié des
+             pixels s'entassent dans les deux cases centrales. */
+          var rad = Math.sqrt(Math.random());
+          c  = Math.round((brandX - zone.x) / GRID + Math.cos(ang) * rad * REACH_X);
+          rw = Math.round((brandY - zone.y) / GRID + Math.sin(ang) * rad * REACH_Y);
         } else {
-          c = (Math.random() * cols) | 0;
+          // le reste du temps, n'importe où : les coins finissent par vivre
+          c  = (Math.random() * cols) | 0;
+          rw = (Math.random() * rows) | 0;
         }
-        rw = (Math.random() * rows) | 0;
         if (c < 0 || c >= cols || rw < 0 || rw >= rows) continue;
         lit[c + "," + rw] = { a: 0, h: HOLD + ((Math.random() * HOLD * 2) | 0), c: 0 };
       }
@@ -1419,10 +1457,13 @@
         setZone(el);
         launch(el, "brand", false);
       });
-      el.addEventListener("mousemove", function (e) { brandX = e.clientX; });
+      el.addEventListener("mousemove", function (e) {
+        brandX = e.clientX; brandY = e.clientY;
+      });
       el.addEventListener("mouseleave", function () {
         brandOn = false;
         brandX = null;
+        brandY = null;
       });
     });
   })();
