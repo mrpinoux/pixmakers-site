@@ -1084,6 +1084,7 @@
     var motes = [], fronts = [], running = false;
     var brandOn = false;
     var brandX = null;      // où le curseur se trouve sur le mot
+    var brandEl = null;
 
     // Matches the CSS easing on both shapes, so the pixels ride the same curve
     // the accent does rather than drifting out of step with it.
@@ -1164,47 +1165,66 @@
       }
     }
 
-    /* Une goutte du logo. Ce n'est pas un carré qui tombe, c'est une case qui
-       s'allume puis passe le relais à celle du dessous. La cellule 01, au pied
-       des lettres, part à pleine force ; quand la 02 s'allume, la 01 tombe à
-       la moitié ; quand la 03 s'allume, la 01 n'est plus qu'à un dixième et la
-       02 à la moitié. Trois cases vivantes à la fois, jamais plus — ce qui
-       descend est la lumière, pas l'objet. */
-    var TRAIL = [1, .5, .1];      // tête, puis les deux précédentes
-    var STEP  = 4;                // images passées sur chaque case — la cadence
-    var runners = [];
-    var tickCell = 0;             // l'horloge, commune à toutes les traînées
+    /* Une zone en grille autour du logo. Ce n'est plus une goutte qui traverse
+       l'espace mais un damier fixe où des cases s'allument au hasard, plus
+       denses près du curseur, et s'éteignent par paliers — pleine force, puis
+       la moitié, puis un dixième. Le motif n'est jamais deux fois le même,
+       et comme rien ne se déplace, la grille se lit comme une grille. */
+    var GRID   = 6;               // côté d'une case
+    var LEVELS = [1, .5, .1];     // ce qu'il reste après 0, 1 et 2 pas
+    var STEP   = 5;               // images passées sur chaque palier
+    var PAD    = 14;              // ce que la zone déborde du mot
+    var tickCell = 0;             // l'horloge, commune à toute la zone
+    var lit = {};                 // cases allumées : "x,y" -> âge en paliers
+    var zone = null;
 
-    function drip(x, y) {
-      var s = 6;
-      runners.push({
-        x: Math.round(x / s) * s,
-        y: Math.round(y / s) * s,
-        s: s,
-        head: 0,                                    // case allumée en ce moment
-        len: 7 + ((Math.random() * 11) | 0),        // cases parcourues avant l'arrêt
-        col: PALETTE[(Math.random() * PALETTE.length) | 0]
-      });
+    function setZone(el) {
+      var r = el.getBoundingClientRect();
+      zone = {
+        x: Math.floor((r.left - PAD) / GRID) * GRID,
+        y: Math.floor((r.top - PAD) / GRID) * GRID,
+        w: Math.ceil((r.width + PAD * 2) / GRID) * GRID,
+        h: Math.ceil((r.height + PAD * 2) / GRID) * GRID
+      };
     }
 
-    function drawRunners() {
-      /* Une seule horloge pour tout le monde. Chaque traînée avait la sienne,
-         et des colonnes qui descendent à des vitesses différentes ne se lisent
-         plus comme une grille — c'est la régularité du pas qui fait la trame,
-         pas l'alignement des cases. */
-      var step = (++tickCell % STEP) === 0;
-      for (var i = runners.length - 1; i >= 0; i--) {
-        var R = runners[i];
-        if (step) R.head++;
-        // la queue a dépassé la dernière case : plus rien à peindre
-        if (R.head - (TRAIL.length - 1) > R.len) { runners.splice(i, 1); continue; }
-        cx.fillStyle = R.col;
-        for (var k = 0; k < TRAIL.length; k++) {
-          var cell = R.head - k;
-          if (cell < 0 || cell > R.len) continue;
-          cx.globalAlpha = TRAIL[k];
-          cx.fillRect(R.x, R.y + cell * R.s, R.s, R.s);
+    /* Un tirage par pas d'horloge : quelques cases neuves, choisies plus
+       volontiers près du pointeur, et tout le reste vieillit d'un cran. */
+    function seedCells() {
+      if (!zone) return;
+      var cols = Math.max(1, zone.w / GRID), rows = Math.max(1, zone.h / GRID);
+      var n = 3 + ((Math.random() * 4) | 0);
+      for (var i = 0; i < n; i++) {
+        var c, rw;
+        if (brandX !== null && Math.random() < .72) {
+          // près du curseur, dans une bande de cinq cases
+          c = Math.round((brandX - zone.x) / GRID) + ((Math.random() * 5) | 0) - 2;
+        } else {
+          c = (Math.random() * cols) | 0;
         }
+        rw = (Math.random() * rows) | 0;
+        if (c < 0 || c >= cols || rw < 0 || rw >= rows) continue;
+        lit[c + "," + rw] = 0;
+      }
+    }
+
+    function drawCells() {
+      if (!zone) return;
+      var step = (++tickCell % STEP) === 0;
+      var keys = Object.keys(lit);
+      if (step) {
+        seedCells();
+        for (var i = 0; i < keys.length; i++) {
+          if (++lit[keys[i]] >= LEVELS.length) delete lit[keys[i]];
+        }
+        keys = Object.keys(lit);
+      }
+      for (var j = 0; j < keys.length; j++) {
+        var p = keys[j].split(","), age = lit[keys[j]];
+        if (age === undefined) continue;
+        cx.globalAlpha = LEVELS[age];
+        cx.fillStyle = PALETTE[(((+p[0]) * 7 + (+p[1]) * 13) % PALETTE.length)];
+        cx.fillRect(zone.x + p[0] * GRID, zone.y + p[1] * GRID, GRID, GRID);
       }
       cx.globalAlpha = 1;
     }
@@ -1228,19 +1248,9 @@
              une goutte de temps en temps — quelques pixels soudés, calés sur
              un pas fixe, qui descendent ensemble. La grille se lit parce que
              les départs sont alignés et rares, pas parce qu'ils sont nombreux. */
-          /* Ça coule de là où on pointe, pas de tout le mot — comme la tache
-             sur une vignette ou la brosse sur un portrait. Sans repère de
-             curseur (au tout premier instant), on ne lâche rien plutôt que
-             d'arroser au hasard. */
-          if (brandX === null) continue;
-          if (Math.random() < .8) continue;         // une image sur cinq environ
-          /* Le pas vaut la cellule : deux amas voisins se touchent, la trame
-             est continue. */
-          var PITCH = 6;
-          var REACH = 30;                           // largeur de la zone qui goutte
-          var x = brandX + (Math.random() - .5) * 2 * REACH;
-          x = Math.max(r.left, Math.min(r.right - PITCH, x));
-          drip(Math.round((x - r.left) / PITCH) * PITCH + r.left, r.bottom);
+          /* Le front ne sert plus qu'à tenir la zone à jour ; c'est
+             drawCells() qui allume, à sa propre cadence. */
+          setZone(brandEl);
           continue;
         }
 
@@ -1312,10 +1322,11 @@
         cx.fillRect(m.x | 0, m.y | 0, m.s, m.s);
       }
       cx.globalAlpha = 1;
-      drawRunners();
+      drawCells();
 
-      if (motes.length || fronts.length || runners.length) requestAnimationFrame(tick);
-      else running = false;
+      if (motes.length || fronts.length || Object.keys(lit).length)
+        requestAnimationFrame(tick);
+      else { zone = null; running = false; }
     }
 
     function launch(el, kind, out) {
@@ -1358,6 +1369,8 @@
       el.addEventListener("mouseenter", function () {
         if (brandOn) return;
         brandOn = true;
+        brandEl = el;
+        setZone(el);
         launch(el, "brand", false);
       });
       el.addEventListener("mousemove", function (e) { brandX = e.clientX; });
