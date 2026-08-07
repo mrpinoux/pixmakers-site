@@ -347,7 +347,19 @@ h1.shead__title {
   inset: 0;
   background: linear-gradient(to top, var(--ink) 2%, transparent 55%);
 }
-.hero__inner { position: relative; z-index: 1; }
+/* Le hero se cale sur la meme mesure que tout le reste. Il courait d'un bord
+   a l'autre de la fenetre pendant que chaque autre module s'arretait aux
+   108rem du .wrap : le titre commencait donc trois cents pixels a gauche de
+   « Ce qu'on fait », et c'est ce decalage qu'on voyait. Sur la page d'accueil,
+   la seule chose qui prendra la pleine largeur sera la bobine, quand elle
+   arrivera — et elle le fera exprès. */
+.hero__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 108rem;
+  margin-inline: auto;
+}
 
 /* The creed. Quiet, but it takes the full measure — a narrow column parked at
    the left of a wide hero left a dead half-page beside it. Two columns from
@@ -897,6 +909,44 @@ h1.shead__title {
 .face > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .face:hover { filter: none; }
 
+/* Sur la page d'accueil, les cinq visages prennent la ligne entiere plutot
+   que la taille fixe qu'ils ont ailleurs, et chacun porte son nom dessous. */
+.faces--home {
+  gap: clamp(.4rem, 1vw, .9rem);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+}
+.faces--home .face { width: auto; display: block; }
+.mug { display: block; }
+.mug__name {
+  display: block;
+  margin-top: .7rem;
+  font-variation-settings: "wdth" 112, "wght" 800;
+  text-transform: uppercase;
+  font-size: clamp(.8rem, 1.05vw, .98rem);
+  line-height: 1.15;
+  letter-spacing: -.005em;
+}
+.mug__role {
+  display: block;
+  margin-top: .25rem;
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  line-height: 1.45;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--on-dark-muted);
+}
+.paper .mug__role { color: var(--on-light-muted); }
+.mug:hover .mug__name { color: var(--accent); }
+
+@media (max-width: 46rem) {
+  /* Cinq de front sur un telephone donnent des vignettes de soixante pixels :
+     on passe a trois, quitte a ce que la rangee en fasse deux. */
+  .faces--home { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* The names are the point of this page — let them fill the row. */
 .cast__name {
   font-variation-settings: "wdth" 125, "wght" 900;
@@ -995,12 +1045,12 @@ h1.shead__title {
      rangee, et la photo vient s'y ajuster. */
   align-items: stretch;
 }
+/* L'image s'arrete ou s'arretent les autres modules. Elle debordait jusqu'au
+   bord de la fenetre, et c'etait le seul bloc du site a le faire : a cote des
+   grilles et des bandeaux qui tiennent tous dans les 108rem, ca ne se lisait
+   pas comme une intention. */
 @media (min-width: 60rem) {
   .about { grid-template-columns: 1fr 1fr; }
-  /* L'image sort du conteneur et va toucher le bord de la fenetre. La marge
-     a rattraper, c'est la gouttiere du .wrap plus, quand l'ecran depasse ses
-     108rem, la moitie de ce qui reste de chaque cote. */
-  .about__shot { margin-right: calc(-1 * (var(--gut) + max(0px, (100vw - 108rem) / 2))); }
 }
 /* Meme corps que les biographies de realisateurs : c'est le texte long du
    site, il n'y a pas de raison qu'il change de taille selon la page. Il etait
@@ -1038,6 +1088,23 @@ h1.shead__title {
   object-fit: cover;
   object-position: center;
 }
+
+/* Le relais, de gauche a droite. La suivante attend hors cadre a gauche,
+   vient prendre la place, et pousse la precedente dehors a droite : les deux
+   bougent ensemble, donc ca se lit comme une bande qui defile et non comme
+   une image posee sur une autre. La courbe part vite et se pose net. */
+.about__shot[data-slides] > img {
+  transform: translateX(-101%);
+  transition: transform .46s cubic-bezier(.66, 0, .18, 1);
+  will-change: transform;
+}
+.about__shot[data-slides] > img.on  { transform: none; }
+.about__shot[data-slides] > img.out { transform: translateX(101%); }
+/* Le temps de reposer la sortante a gauche, sans la voir retraverser. */
+.about__shot[data-slides] > img.mute { transition: none; }
+/* Sans JavaScript, aucune classe n'est posee : la premiere doit rester en
+   place plutot que d'attendre hors cadre. */
+.about__shot[data-slides] > img:first-child:not(.on):not(.out):not(.mute) { transform: none; }
 /* En une colonne il n'y a plus de voisin pour donner la hauteur : le cadre
    se la fabrique. */
 .about__shot { aspect-ratio: 3 / 4; }

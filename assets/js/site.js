@@ -1671,7 +1671,10 @@
        une zone qui suit la souris et non une couverture qui s'accumule. Les
        pixels qui en tombent sont échantillonnés dans l'image, aux couleurs
        de l'endroit exact où ils se détachent. */
-    document.querySelectorAll(".work__media, .card__media").forEach(function (media) {
+    /* .face : les cinq portraits de la page d'accueil. Meme geste que sur une
+       vignette de film — c'est la meme nature d'objet, une image qu'on survole
+       avant de cliquer. */
+    document.querySelectorAll(".work__media, .card__media, .face").forEach(function (media) {
       var img = media.querySelector("img");
       if (!img) return;
 
@@ -1890,6 +1893,54 @@
 
     document.querySelectorAll(SEL).forEach(function (img) {
       if (io) io.observe(img);
+    });
+  })();
+
+  /* ---- Deux photos qui se relaient ----------------------------------------- *
+   * Sur la page « À propos », l'image change toutes les cinq secondes. Elle
+   * glisse de gauche a droite : la suivante entre par la gauche et pousse la
+   * precedente dehors. Les deux bougent ensemble, donc ca se lit comme une
+   * bande qui defile. Court et sec —
+   * une image qui se change doit se remarquer une fois, pas s'installer.
+   *
+   * Les deux photos sont dans le HTML : sans JavaScript on en voit une, et un
+   * moteur les lit toutes les deux.
+   * -------------------------------------------------------------------------- */
+
+  (function () {
+    var hosts = document.querySelectorAll("[data-slides]");
+    if (!hosts.length) return;
+    /* Une image qui bouge toute seule est une animation : qui n'en veut pas
+       garde la première, que le HTML donne déjà. */
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    var PAUSE = 5000;   // ce qu'on laisse voir
+    var GLISSE = 460;   // la durée du mouvement, calée sur la feuille de style
+
+    hosts.forEach(function (box) {
+      var imgs = [].slice.call(box.querySelectorAll("img"));
+      if (imgs.length < 2) return;
+
+      var cur = 0;
+      imgs[0].classList.add("on");
+
+      setInterval(function () {
+        var suiv = (cur + 1) % imgs.length;
+        var sortant = imgs[cur];
+        sortant.classList.remove("on");
+        sortant.classList.add("out");
+        imgs[suiv].classList.add("on");
+
+        /* La sortante est remise en bas sans être vue traverser le cadre :
+           on coupe la transition le temps de la reposer a gauche. */
+        setTimeout(function () {
+          sortant.classList.add("mute");
+          sortant.classList.remove("out");
+          setTimeout(function () { sortant.classList.remove("mute"); }, 40);
+        }, GLISSE + 40);
+
+        cur = suiv;
+      }, PAUSE);
     });
   })();
 

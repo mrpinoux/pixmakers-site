@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Space+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=01af4b21">
+<link rel="stylesheet" href="assets/css/site.css?v=a567a882">
 </head>
 <body>
 
@@ -46,13 +46,13 @@
   <section class="hero">
     <div class="hero__bg"></div>
     <div class="hero__inner">
-      <p class="meta"><span data-l="en">Paris — New York — Los Angeles / since 1998</span><span data-l="fr">Paris — New York — Los Angeles / depuis 1998</span></p>
       <!-- data-scatter: site.js splits this into letters and lets the pointer
            push them around. Drop the attribute to turn it off. -->
       <h1 class="hero__title" data-scatter><span data-l="en">A collective of <em>directors</em> &amp; artists</span><span data-l="fr">Un collectif de <em>réalisateurs</em> et d’artistes</span></h1>
       <div class="hero__foot">
         <p class="hero__pitch"><span data-l="en">Music videos, fashion films and commercials. Strong imagery driven by graphic design, colour and cut.</span><span data-l="fr">Clips, films de mode et publicités. Une image forte, portée par le graphisme, la couleur et le montage.</span></p>
       </div>
+      <p class="meta"><span data-l="en">Paris — New York — Los Angeles / since 1998</span><span data-l="fr">Paris — New York — Los Angeles / depuis 1998</span></p>
     </div>
   </section>
 
@@ -352,36 +352,35 @@
         <p class="meta shead__aside"><span data-l="en">Five directors, three cities, one standard for the image.</span><span data-l="fr">Cinq réalisateurs, trois villes, une seule exigence sur l’image.</span></p>
       </div>
 
-      <div class="cast">
-        <a class="cast__row" href="director-mr-pinoux.html">
-          <span class="num">01</span>
-          <span class="cast__name">Mr. Pinoux</span>
-          <span class="cast__role">Founder / Director</span>
-          <span class="cast__go"><span data-l="en">View work</span><span data-l="fr">Voir les films</span></span>
+      <!-- Les visages plutot que les noms en grand : la page des
+           realisateurs porte deja cette liste-la. Nom et fonction sont
+           imprimes sous chaque portrait — au survol, personne ne les
+           aurait lus, et cinq visages muets ne se naviguent pas. -->
+      <div class="faces faces--home">
+        <a class="mug" href="director-mr-pinoux.html">
+          <span class="face"><img src="assets/img/directors/mrpinoux.jpg" alt="Mr. Pinoux" loading="lazy"></span>
+          <span class="mug__name">Mr. Pinoux</span>
+          <span class="mug__role">Founder / Director / VFX Supervisor</span>
         </a>
-        <a class="cast__row" href="director-ariles-de-tizi.html">
-          <span class="num">02</span>
-          <span class="cast__name">Arilès De Tizi</span>
-          <span class="cast__role">Director / Painter / Photographer</span>
-          <span class="cast__go"><span data-l="en">View work</span><span data-l="fr">Voir les films</span></span>
+        <a class="mug" href="director-ariles-de-tizi.html">
+          <span class="face"><img src="assets/img/directors/ariles.jpg" alt="Arilès De Tizi" loading="lazy"></span>
+          <span class="mug__name">Arilès De Tizi</span>
+          <span class="mug__role">Director / Painter / Photographer</span>
         </a>
-        <a class="cast__row" href="director-lordface.html">
-          <span class="num">03</span>
-          <span class="cast__name">LordFace</span>
-          <span class="cast__role">Director</span>
-          <span class="cast__go"><span data-l="en">View work</span><span data-l="fr">Voir les films</span></span>
+        <a class="mug" href="director-lordface.html">
+          <span class="face"><img src="assets/img/directors/lordface.jpg" alt="LordFace" loading="lazy"></span>
+          <span class="mug__name">LordFace</span>
+          <span class="mug__role">Director</span>
         </a>
-        <a class="cast__row" href="director-vgtah.html">
-          <span class="num">04</span>
-          <span class="cast__name">Vgtah</span>
-          <span class="cast__role">Director / Editor</span>
-          <span class="cast__go"><span data-l="en">View work</span><span data-l="fr">Voir les films</span></span>
+        <a class="mug" href="director-vgtah.html">
+          <span class="face"><img src="assets/img/directors/vgtah.jpg" alt="Vgtah" loading="lazy"></span>
+          <span class="mug__name">Vgtah</span>
+          <span class="mug__role">Director / Editor</span>
         </a>
-        <a class="cast__row" href="director-chris-cuseo.html">
-          <span class="num">05</span>
-          <span class="cast__name">Chris Cuseo</span>
-          <span class="cast__role">Director / Sculptor / Painter</span>
-          <span class="cast__go"><span data-l="en">View work</span><span data-l="fr">Voir les films</span></span>
+        <a class="mug" href="director-chris-cuseo.html">
+          <span class="face"><img src="assets/img/directors/cuseo.jpg" alt="Chris Cuseo" loading="lazy"></span>
+          <span class="mug__name">Chris Cuseo</span>
+          <span class="mug__role">Director / Sculptor / Painter</span>
         </a>
       </div>
     </div>
@@ -506,6 +505,6 @@
   </div>
 </footer>
 
-<script src="assets/js/site.js?v=71183765"></script>
+<script src="assets/js/site.js?v=4a11718f"></script>
 </body>
 </html>
