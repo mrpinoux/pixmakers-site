@@ -1058,9 +1058,10 @@
    *   of pixels along with it, in and out again. Each mote picks up its own
    *   delay and speed, so the wave has depth rather than moving as one line.
    *
-   *   Work tiles — the tile jumps off-register and uncovers the accent block
-   *   down and to the right. The pixels are what the tile displaces: they are
-   *   thrown along the two revealed edges, away from the way the tile went.
+   *   Le logo — une zone en damier autour du mot, plus dense près du curseur.
+   *
+   * Les vignettes ne sont plus ici : elles ont la tache pixelisée, et le saut
+   * de plaque qui justifiait leur poussière n'existe plus non plus.
    *
    * One fixed canvas for the document, since a mote has to be free to drift
    * past the edge of whatever threw it.

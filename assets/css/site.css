@@ -632,26 +632,25 @@ h1.shead__title {
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* The whole tile jumps off-register, like a misprinted colour plate: it steps
-   up and left while a hard accent block stays behind, down and right. No blur,
-   no easing drift — .14s, and it has landed. Both transform and box-shadow, so
-   the grid never reflows and the block can overlap its neighbours. */
-.work,
+/* La tuile ne bouge plus de sa place. Elle sautait en haut à gauche en
+   laissant un bloc rose derrière elle, en bas à droite — un décalage de
+   plaque mal imprimée. C'était le geste le plus bruyant de la grille, et il
+   tirait l'œil vers un coin plutôt que vers l'image. Il ne reste que le zoom,
+   qui part du centre : l'image avance vers vous au lieu de glisser de côté.
+
+   Rien à ajouter sur une tuile de film : elle porte déjà son filet au repos,
+   celui que deux voisines partagent dans le pixel qui les sépare. La carte
+   d'un article n'en a pas, elle en prend un au survol. */
 .card__media {
   z-index: 0;
-  transition: transform .14s var(--ease), box-shadow .14s var(--ease);
+  transition: box-shadow .14s var(--ease);
 }
-/* On a card it is the picture that goes off-register, not the whole block —
-   the caption underneath is type, and type does not misprint with it. */
-.work:hover, .work:focus-visible,
 .card:hover .card__media, .card:focus-visible .card__media {
   z-index: 3;
-  transform: translate(-7px, -7px);
-  box-shadow: 13px 13px 0 0 var(--accent), 0 0 0 1px var(--rule-dark);
+  box-shadow: 0 0 0 1px var(--rule-dark);
 }
-.paper .work:hover, .paper .work:focus-visible,
 .paper .card:hover .card__media, .paper .card:focus-visible .card__media {
-  box-shadow: 13px 13px 0 0 var(--accent), 0 0 0 1px var(--rule-light);
+  box-shadow: 0 0 0 1px var(--rule-light);
 }
 
 .work__line {
