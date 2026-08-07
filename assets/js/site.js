@@ -83,7 +83,11 @@
     var parts = String(spec).split(":");
     var host = parts[0], id = parts[1];
     if (!id) return null;
-    if (host === "youtube") return "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(id) + "?autoplay=1&rel=0";
+    /* cc_load_policy=0 : pas de sous-titres à l'ouverture. C'est un souhait,
+       pas une garantie — un spectateur qui a forcé les sous-titres dans son
+       compte YouTube les gardera, et le bouton CC reste là pour tout le
+       monde. Mais par défaut, le film s'ouvre sans texte par-dessus. */
+    if (host === "youtube") return "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(id) + "?autoplay=1&rel=0&cc_load_policy=0";
     if (host === "vimeo")   return "https://player.vimeo.com/video/" + encodeURIComponent(id) + "?autoplay=1&title=0&byline=0&portrait=0";
     return null;
   }
@@ -1172,18 +1176,21 @@
        et comme rien ne se déplace, la grille se lit comme une grille. */
     var GRID   = 6;               // côté d'une case
     var LEVELS = [1, .5, .1];     // ce qu'il reste après 0, 1 et 2 pas
-    var STEP   = 15;              // images passées sur chaque palier
+    var HOLD   = 8;               // images tenues sur un palier, au minimum
+    var SEED   = 8;               // une fournée de cases neuves tous les N
     var PAD    = 14;              // ce que la zone déborde du mot
     /* Trois teintes de l'accent, rien d'autre. La palette à quatre couleurs
        appartient à la poussière des vignettes ; sur le logo elle faisait
        guirlande. Même parti que l'amas des numéros de section. */
     var PINKS  = ["#ff2e88", "#ff74ad", "#cf005f"];
-    var tickCell = 0;             // l'horloge, commune à toute la zone
-    /* Cases allumées : "col,ligne" -> { a: palier, h: pas à tenir, c: compteur }.
-       Chaque case tient son palier plus ou moins longtemps — l'horloge reste
-       commune, c'est la durée de vie qui varie, pas la vitesse. Une case fixe
-       qui s'attarde ne défait pas la trame ; une case qui se déplace plus vite
-       que sa voisine, si. */
+    var tickCell = 0;             // ne cadence plus que les allumages
+    /* Cases allumées : "col,ligne" -> { a: palier, h: images à tenir, c: compteur }.
+       Chaque case compte ses propres images, à partir du moment où elle s'est
+       allumée. Une horloge commune faisait changer toute la zone sur la même
+       image : trente cases qui baissent d'un cran ensemble, c'est un à-coup,
+       pas une extinction. Réparties, les mêmes paliers passent inaperçus.
+       Une case fixe qui s'attarde ne défait pas la trame ; une case qui se
+       déplace plus vite que sa voisine, si. */
     var lit = {};
     var zone = null;
 
@@ -1219,27 +1226,25 @@
         }
         rw = (Math.random() * rows) | 0;
         if (c < 0 || c >= cols || rw < 0 || rw >= rows) continue;
-        lit[c + "," + rw] = { a: 0, h: 1 + ((Math.random() * 3) | 0), c: 0 };
+        lit[c + "," + rw] = { a: 0, h: HOLD + ((Math.random() * HOLD * 2) | 0), c: 0 };
       }
     }
 
     function drawCells() {
       if (!zone) return;
-      var step = (++tickCell % STEP) === 0;
+      /* On n'alimente que tant que le curseur est là. En sortant, plus aucune
+         case neuve : celles qui brûlent finissent leurs paliers et la zone
+         s'éteint d'elle-même. */
+      if (brandOn && (++tickCell % SEED) === 0) seedCells();
       var keys = Object.keys(lit);
-      if (step) {
-        /* On n'alimente que tant que le curseur est là. En sortant, plus
-           aucune case neuve : celles qui brûlent finissent leurs paliers et
-           la zone s'éteint d'elle-même. */
-        if (brandOn) seedCells();
-        for (var i = 0; i < keys.length; i++) {
-          var L = lit[keys[i]];
-          if (++L.c < L.h) continue;             // elle tient encore son palier
-          L.c = 0;
-          if (++L.a >= LEVELS.length) delete lit[keys[i]];
-        }
-        keys = Object.keys(lit);
+      for (var i = 0; i < keys.length; i++) {
+        var L = lit[keys[i]];
+        if (++L.c < L.h) continue;               // elle tient encore son palier
+        L.c = 0;
+        L.h = HOLD + ((Math.random() * HOLD * 2) | 0);
+        if (++L.a >= LEVELS.length) delete lit[keys[i]];
       }
+      keys = Object.keys(lit);
       for (var j = 0; j < keys.length; j++) {
         var p = keys[j].split(","), L2 = lit[keys[j]];
         if (!L2) continue;
@@ -2014,7 +2019,14 @@
   });
 
   /* ---- Filtering a work grid ------------------------------------------------ *
-   * Built only where a grid is long enough to need it. Search reads the title
+   * Built on every director page, whatever the size of their grid, and on any
+   * other grid long enough to need it. A director with three films does not
+   * need to search them — but a roster where only the busiest name carries a
+   * filter bar reads as an inconsistency, not as a convenience. The selects
+   * themselves still appear only where they have something to offer, so a
+   * short grid gets a short bar rather than five dropdowns of one value.
+   *
+   * Search reads the title
    * and the client; the category and artist lists are built from the values
    * actually on the tiles, so a grid never offers a filter that would return
    * nothing. The artist comes straight off the client line already in the
@@ -2026,9 +2038,11 @@
    * roughly half the archive predates any note of when it was made.
    * -------------------------------------------------------------------------- */
 
+  var onDirector = /(^|\/)director-/.test(location.pathname);
+
   document.querySelectorAll(".sheet").forEach(function (sheet) {
     var tiles = [].slice.call(sheet.querySelectorAll(".work"));
-    if (tiles.length < 8) return;
+    if (tiles.length < (onDirector ? 2 : 8)) return;
 
     function values(attr) {
       var seen = {};
