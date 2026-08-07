@@ -1010,10 +1010,11 @@
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     var ROWS  = ".cast__row";
-    /* Les vignettes vidéo ont désormais la mosaïque qu'on frotte, comme les
-       portraits : deux effets sur le même survol se marchaient dessus. */
-    var TILES = "a.card";
-    if (!document.querySelector(ROWS) && !document.querySelector(TILES)) return;
+    /* Plus aucune vignette ici : elles ont toutes la tache pixelisée, qui se
+       suffit. Il ne reste que les lignes de la liste des réalisateurs, où le
+       remplissage balaie de gauche à droite et où les pixels le devancent. */
+    var TILES = "";
+    if (!document.querySelector(ROWS)) return;
 
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
     var MAX = 320;
@@ -1227,7 +1228,7 @@
       });
     }
     wire(ROWS, "row");
-    wire(TILES, "tile");
+    if (TILES) wire(TILES, "tile");
   })();
   /* ---- Blur-up portraits --------------------------------------------------- *
    * The container carries --lqip, a 24px still of the photo. CSS paints it
@@ -1432,7 +1433,7 @@
        une zone qui suit la souris et non une couverture qui s'accumule. Les
        pixels qui en tombent sont échantillonnés dans l'image, aux couleurs
        de l'endroit exact où ils se détachent. */
-    document.querySelectorAll(".work__media").forEach(function (media) {
+    document.querySelectorAll(".work__media, .card__media").forEach(function (media) {
       var img = media.querySelector("img");
       if (!img) return;
 
