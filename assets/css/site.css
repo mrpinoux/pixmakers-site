@@ -1098,8 +1098,12 @@ h1.shead__title {
   transition: transform .46s cubic-bezier(.66, 0, .18, 1);
   will-change: transform;
 }
-.about__shot[data-slides] > img.on  { transform: none; }
-.about__shot[data-slides] > img.out { transform: translateX(101%); }
+/* L'entrante passe toujours au-dessus. Sans ca, l'ordre du HTML decide : la
+   premiere photo, ecrite en premier, revenait sous la seconde et on la voyait
+   glisser par en dessous au lieu de la pousser dehors. */
+.about__shot[data-slides] > img     { z-index: 0; }
+.about__shot[data-slides] > img.out { z-index: 1; transform: translateX(101%); }
+.about__shot[data-slides] > img.on  { z-index: 2; transform: none; }
 /* Le temps de reposer la sortante a gauche, sans la voir retraverser. */
 .about__shot[data-slides] > img.mute { transition: none; }
 /* Sans JavaScript, aucune classe n'est posee : la premiere doit rester en
@@ -1228,8 +1232,15 @@ h1.shead__title {
   grid-template-columns: 1fr;
   gap: clamp(1.75rem, 4vw, 3.5rem);
 }
+/* Trois par rangee sur grand ecran. A deux, les cartes prenaient chacune la
+   moitie de la page et l'index se lisait comme une suite d'affiches ; a trois
+   il redevient un sommaire, ce qu'il est. Deux au format tablette, une seule
+   sur telephone. */
 @media (min-width: 760px) {
   .cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1100px) {
+  .cards { grid-template-columns: repeat(3, 1fr); }
 }
 
 .card { display: flex; flex-direction: column; }

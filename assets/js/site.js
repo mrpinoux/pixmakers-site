@@ -34,7 +34,9 @@
     "French rap": "Rap français",
     "French pop": "Variété française",
     "House old-school": "House old-school",
-    "Afro house": "Afro house"
+    "Afro house": "Afro house",
+    "Club night": "Nuit de club",
+    "Behind the scenes": "Coulisses"
   };
 
   var LANG = "en";
@@ -2307,6 +2309,112 @@
       apply();
     });
     apply();
+  });
+
+  /* ---- Filtrer les articles de coulisses ----------------------------------- *
+   * La meme barre que sur une grille de films, sur la grille d'articles :
+   * recherche, sujet, et tri par date. Elle ne se construit que sur la grille
+   * marquee `data-postfilter` — les cartes « lire aussi » au bas d'un article
+   * n'ont rien a filtrer.
+   *
+   * Les sujets se lisent sur les cartes elles-memes, donc la liste ne propose
+   * jamais un choix qui ne renverrait rien.
+   * -------------------------------------------------------------------------- */
+
+  document.querySelectorAll("[data-postfilter]").forEach(function (grille) {
+    var cartes = [].slice.call(grille.querySelectorAll(".card"));
+    if (cartes.length < 2) return;
+
+    var sujets = (function () {
+      var vus = {};
+      cartes.forEach(function (c) {
+        var v = c.getAttribute("data-topic");
+        if (v) vus[v] = 1;
+      });
+      return Object.keys(vus).sort();
+    })();
+
+    var bar = document.createElement("div");
+    bar.className = "wfilter";
+    bar.innerHTML =
+      '<input type="search" class="wfilter__q" aria-label="Search the posts">' +
+      (sujets.length > 1
+        ? '<select class="wfilter__topic" aria-label="Subject"><option value=""></option>' +
+          sujets.map(function (v) { return '<option value="' + v + '">' + v + "</option>"; }).join("") +
+          "</select>"
+        : "") +
+      '<button type="button" class="wfilter__sort" data-dir="desc"></button>' +
+      '<p class="wfilter__count meta" aria-live="polite"></p>' +
+      '<button type="button" class="wfilter__clear" hidden aria-label="Clear the filters">×</button>';
+    grille.parentNode.insertBefore(bar, grille);
+
+    var q = bar.querySelector(".wfilter__q");
+    var sujet = bar.querySelector(".wfilter__topic");
+    var tri = bar.querySelector(".wfilter__sort");
+    var compte = bar.querySelector(".wfilter__count");
+    var vider = bar.querySelector(".wfilter__clear");
+
+    onLang(function () {
+      q.placeholder = T("Search the posts", "Chercher un article");
+      if (sujet) {
+        sujet.options[0].textContent = T("All subjects", "Tous les sujets");
+        [].forEach.call(sujet.options, function (o) { if (o.value) o.textContent = L(o.value); });
+      }
+      tri.textContent = tri.getAttribute("data-dir") === "desc"
+        ? T("Newest first", "Plus récents d’abord")
+        : T("Oldest first", "Plus anciens d’abord");
+      vider.title = T("Clear the filters", "Effacer les filtres");
+      appliquer();
+    });
+
+    function texte(c) {
+      return (c.textContent || "").toLowerCase();
+    }
+
+    function appliquer() {
+      var mot = q.value.trim().toLowerCase();
+      var quoi = sujet ? sujet.value : "";
+      var vus = 0;
+
+      cartes.forEach(function (c) {
+        var ok = (!mot || texte(c).indexOf(mot) >= 0)
+              && (!quoi || c.getAttribute("data-topic") === quoi);
+        c.hidden = !ok;
+        if (ok) vus++;
+      });
+
+      /* Le tri se fait sur la date portee par la carte, pas sur le texte
+         affiche : celui-ci change de langue, la date non. */
+      var sens = tri.getAttribute("data-dir") === "asc" ? 1 : -1;
+      cartes.slice().sort(function (a, b) {
+        var x = a.getAttribute("data-date") || "";
+        var y = b.getAttribute("data-date") || "";
+        return x === y ? 0 : (x < y ? -1 : 1) * sens;
+      }).forEach(function (c) { grille.appendChild(c); });
+
+      var filtre = !!(mot || quoi);
+      vider.hidden = !filtre;
+      compte.textContent = filtre
+        ? vus + T(" of ", " sur ") + cartes.length
+        : cartes.length + T(" posts", " articles");
+    }
+
+    q.addEventListener("input", appliquer);
+    if (sujet) sujet.addEventListener("change", appliquer);
+    vider.addEventListener("click", function () {
+      q.value = "";
+      if (sujet) sujet.value = "";
+      appliquer();
+    });
+    tri.addEventListener("click", function () {
+      var asc = tri.getAttribute("data-dir") === "asc";
+      tri.setAttribute("data-dir", asc ? "desc" : "asc");
+      tri.textContent = asc
+        ? T("Newest first", "Plus récents d’abord")
+        : T("Oldest first", "Plus anciens d’abord");
+      appliquer();
+    });
+    appliquer();
   });
 
   /* ---- Year stamp -------------------------------------------------------- */
