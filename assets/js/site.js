@@ -1057,23 +1057,62 @@
       });
     }
 
-    /* Un pixel qui tombe : pas de dérive latérale, une taille unique, et une
-       position arrondie au pas de la grille pour qu'ils s'alignent entre eux
-       au lieu de flotter. */
-    function fall(x, y, col, slow) {
-      if (motes.length >= MAX) return;
+    /* Les couleurs viennent de la vignette elle-même : ce ne sont pas des
+       confettis posés dessus, ce sont des morceaux d'elle. Une image servie
+       par YouTube salit le canvas et interdit la lecture — on retombe alors
+       sur l'accent, ce qui reste juste plutôt que de ne rien faire. */
+    var swatchCache = new WeakMap();
+
+    function swatches(el) {
+      if (swatchCache.has(el)) return swatchCache.get(el);
+      var out = null;
+      var img = el.querySelector("img");
+      if (img && img.complete && img.naturalWidth) {
+        try {
+          var n = 8;
+          var oc = document.createElement("canvas");
+          oc.width = oc.height = n;
+          var ox = oc.getContext("2d", { willReadFrequently: true });
+          ox.drawImage(img, 0, 0, n, n);
+          var d = ox.getImageData(0, 0, n, n).data;
+          out = [];
+          for (var i = 0; i < n * n; i++) {
+            var o = i * 4;
+            out.push("rgb(" + d[o] + "," + d[o + 1] + "," + d[o + 2] + ")");
+          }
+        } catch (e) { out = null; }     // image distante : canvas sali
+      }
+      swatchCache.set(el, out);
+      return out;
+    }
+
+    /* Une colonne qui décroche, pas des flocons. Les pixels d'une même
+       colonne partent ensemble, empilés, à la même vitesse : ils descendent
+       en bloc et se lisent comme une bande d'image qui glisse. Des vitesses
+       individuelles donnaient de la neige — chacun son rythme, chacun sa
+       trajectoire, c'est-à-dire de la météo. */
+    function fallColumn(x, y, col, slow, hole) {
       var s = 6;
-      motes.push({
-        x: Math.round(x / s) * s,
-        y: Math.round(y / s) * s,
-        vx: 0,
-        vy: (slow ? .35 : .9) + Math.random() * (slow ? .5 : 1.1),
-        s: s,
-        life: 1 + Math.random() * .3,
-        fade: .03 * (.6 + Math.random() * 1.1),
-        col: col || PALETTE[(Math.random() * PALETTE.length) | 0],
-        calm: false
-      });
+      var run = 3 + ((Math.random() * 4) | 0);          // 3 à 6 pixels de haut
+      var vy = (slow ? .8 : 2.2) + Math.random() * (slow ? .5 : 1.4);
+      var life = 1 + Math.random() * .25;
+      var fade = .034 * (.7 + Math.random() * .8);
+      var cc = col || PALETTE[(Math.random() * PALETTE.length) | 0];
+      var bx = Math.round(x / s) * s;
+      var by = Math.round(y / s) * s;
+      for (var i = 0; i < run; i++) {
+        if (motes.length >= MAX) return;
+        motes.push({
+          x: bx, y: by - i * s,
+          vx: 0, vy: vy,          // même vitesse : la colonne reste soudée
+          s: s,
+          life: life, fade: fade,
+          col: cc,
+          calm: false,
+          rigid: true,            // ni gravité ni frottement, sinon elle s'étire
+          hole: hole              // la vignette d'origine, où l'on ne peint pas
+        });
+      }
     }
 
     function tick(now) {
@@ -1108,13 +1147,15 @@
           // La couleur du départ : l'accent seul en sortie, la palette à
           // l'arrivée — inchangé, seule la trajectoire change.
           var tc = fr.out ? PALETTE[0] : null;
-          for (var n = 0; n < 2; n++) {
-            if (Math.random() < .55) continue;
-            var col = (Math.random() * cols) | 0;
-            fall(r.left + col * gap,
-                 r.top + Math.random() * r.height * .4,
-                 tc, fr.out);
-          }
+          /* Une colonne à la fois, et pas à chaque image : peu de départs,
+             mais chacun se voit. */
+          if (Math.random() < .55) continue;
+          var col = (Math.random() * cols) | 0;
+          var sw = fr.sw;
+          var cc2 = tc || (sw ? sw[(Math.random() * sw.length) | 0] : null);
+          fallColumn(r.left + col * gap,
+                     r.top + r.height * (.25 + Math.random() * .7),
+                     cc2, fr.out, fr.hole);
         }
       }
 
@@ -1123,7 +1164,11 @@
       for (var k = motes.length - 1; k >= 0; k--) {
         var m = motes[k];
         m.x += m.vx; m.y += m.vy;
-        if (m.calm) {
+        if (m.rigid) {
+          // Rien à faire : la colonne descend à vitesse constante et reste
+          // solidaire. Ajouter de la gravité l'étirerait, et une colonne qui
+          // s'étire redevient une averse.
+        } else if (m.calm) {
           // Settling, not scattering: no gravity and heavy damping, so these
           // pile up in the band they were thrown into and stay there.
           m.vx *= .86; m.vy *= .86;
@@ -1133,6 +1178,12 @@
         }
         m.life -= m.fade;
         if (m.life <= 0) { motes.splice(k, 1); continue; }
+        /* Rien ne se peint sur la vignette d'où ça vient : elle a déjà son
+           décalage rose, et des pixels par-dessus la surchargeaient. Ils
+           n'apparaissent qu'en sortant d'elle — donc sur les voisines. */
+        var h = m.hole;
+        if (h && m.x + m.s > h.left && m.x < h.right &&
+                 m.y + m.s > h.top  && m.y < h.bottom) continue;
         cx.globalAlpha = m.life > 1 ? 1 : m.life;   // the hold, then the fade
         cx.fillStyle = m.col;
         cx.fillRect(m.x | 0, m.y | 0, m.s, m.s);
@@ -1151,10 +1202,13 @@
       var box = el.classList.contains("card")
         ? (el.querySelector(".card__media") || el)
         : el;
+      var rect = box.getBoundingClientRect();
       fronts.push({
         kind: kind,
         out: out,                         // which way the shape is going
-        r: box.getBoundingClientRect(),
+        r: rect,
+        sw: kind === "tile" ? swatches(el) : null,
+        hole: kind === "tile" ? rect : null,
         t0: performance.now(),
         dur: kind === "row" ? 420 : 190   // in step with the CSS transitions
       });
