@@ -1171,7 +1171,9 @@
        02 à la moitié. Trois cases vivantes à la fois, jamais plus — ce qui
        descend est la lumière, pas l'objet. */
     var TRAIL = [1, .5, .1];      // tête, puis les deux précédentes
+    var STEP  = 4;                // images passées sur chaque case — la cadence
     var runners = [];
+    var tickCell = 0;             // l'horloge, commune à toutes les traînées
 
     function drip(x, y) {
       var s = 6;
@@ -1180,17 +1182,20 @@
         y: Math.round(y / s) * s,
         s: s,
         head: 0,                                    // case allumée en ce moment
-        t: 0,
-        every: 3 + ((Math.random() * 3) | 0),       // images passées sur chaque case
         len: 7 + ((Math.random() * 11) | 0),        // cases parcourues avant l'arrêt
         col: PALETTE[(Math.random() * PALETTE.length) | 0]
       });
     }
 
     function drawRunners() {
+      /* Une seule horloge pour tout le monde. Chaque traînée avait la sienne,
+         et des colonnes qui descendent à des vitesses différentes ne se lisent
+         plus comme une grille — c'est la régularité du pas qui fait la trame,
+         pas l'alignement des cases. */
+      var step = (++tickCell % STEP) === 0;
       for (var i = runners.length - 1; i >= 0; i--) {
         var R = runners[i];
-        if (++R.t >= R.every) { R.t = 0; R.head++; }
+        if (step) R.head++;
         // la queue a dépassé la dernière case : plus rien à peindre
         if (R.head - (TRAIL.length - 1) > R.len) { runners.splice(i, 1); continue; }
         cx.fillStyle = R.col;
