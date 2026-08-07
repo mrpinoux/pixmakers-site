@@ -1163,9 +1163,14 @@ h1.shead__title {
 
 /* --- Contact ------------------------------------------------------------- */
 
+/* Les deux bureaux l'un sous l'autre, pas cote a cote. En deux colonnes,
+   « LOS ANGELES » demandait 583 px dans une case qui en offrait 487 et se
+   faisait couper en plein mot. Reduire le corps aurait marche, mais le nom
+   de la ville est le titre de la carte : c'est la colonne qui doit ceder,
+   pas la typographie. */
 .offices {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1px;
   background: var(--rule-light);
   border: 1px solid var(--rule-light);
@@ -1181,7 +1186,39 @@ h1.shead__title {
   line-height: .85;
   letter-spacing: -.025em;
 }
-.office ul { margin-top: 1.75rem; display: grid; gap: 1.1rem; }
+/* L'adresse sous la ville, dans la fonte des legendes : c'est une precision,
+   pas un titre. Redresse parce que <address> penche par defaut, ce qui
+   n'appartient a aucune autre ligne de cette page. */
+.office__where {
+  margin-top: .9rem;
+  font-family: var(--mono);
+  font-size: .78rem;
+  font-style: normal;
+  line-height: 1.65;
+  letter-spacing: .04em;
+  color: var(--on-light-muted);
+}
+/* Les personnes en rang, maintenant qu'une carte tient toute la largeur :
+   empilees, elles laissaient un vide de mille pixels a leur droite. */
+/* Le plan s'ouvre chez OpenStreetMap : pas de compte, pas de traceur, et
+   c'est la seule adresse exterieure du site. Meme forme que « voir les
+   films » ailleurs — un petit mono en accent, pas une icone de plus a
+   dessiner. */
+.office__map {
+  display: block;               /* sa propre ligne : colle a l'adresse, « 75011 Paris OUVRIR LE PLAN » se lisait d'un bloc */
+  margin-top: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.office__map:hover { color: var(--on-light); }
+
+.office ul {
+  margin-top: 1.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1.1rem clamp(1.5rem, 4vw, 3.5rem);
+}
 .office li { padding-top: 1.1rem; border-top: 1px solid var(--rule-light); }
 .office .who {
   font-family: var(--mono);
