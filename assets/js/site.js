@@ -1010,7 +1010,9 @@
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     var ROWS  = ".cast__row";
-    var TILES = "a.work, a.card";
+    /* Les vignettes vidéo ont désormais la mosaïque qu'on frotte, comme les
+       portraits : deux effets sur le même survol se marchaient dessus. */
+    var TILES = "a.card";
     if (!document.querySelector(ROWS) && !document.querySelector(TILES)) return;
 
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
@@ -1267,10 +1269,14 @@
     if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    var BLOCK = 13;    // px per mosaic cell
-    var BRUSH = 96;    // radius the pointer clears
-
-    document.querySelectorAll(".profile__portrait").forEach(function (box) {
+    /* Le même geste sur deux échelles. Un portrait fait 466px de large et
+       garde ce qu'on a dégagé ; une vignette en fait 400 dans une grille de
+       soixante-neuf — elle se rhabille en partant, sinon la page finit en
+       damier à moitié gratté. Les cellules et la brosse suivent la taille :
+       une brosse de 96px sur une vignette la découvrirait d'un seul passage. */
+    function mosaic(box, o) {
+      var BLOCK = o.block;
+      var BRUSH = o.brush;
       var img = box.querySelector("img");
       if (!img) return;
 
@@ -1412,6 +1418,35 @@
           }
           if (falling.length && !running) { running = true; requestAnimationFrame(fall); }
         }
+      });
+
+      /* Une vignette se recouvre en sortant : la grille doit se relire d'un
+         coup d'œil, pas garder la trace de tous les survols de la visite. */
+      if (o.reveil) {
+        box.addEventListener("mouseleave", function () {
+          if (!ready) return;
+          cx.globalCompositeOperation = "source-over";
+          cx.globalAlpha = 1;
+          cx.clearRect(0, 0, w, h);
+          cx.drawImage(off, 0, 0, w, h);
+          remain.fill(1);
+        });
+      }
+    }
+
+    document.querySelectorAll(".profile__portrait").forEach(function (box) {
+      mosaic(box, { block: 13, brush: 96 });
+    });
+
+    /* Les vignettes, elles, ne se préparent qu'au premier survol : monter
+       soixante-neuf mosaïques au chargement coûterait cher pour un effet que
+       la plupart ne verront jamais. */
+    document.querySelectorAll(".work__media").forEach(function (media) {
+      var armed = false;
+      media.addEventListener("mouseenter", function () {
+        if (armed) return;
+        armed = true;
+        mosaic(media, { block: 8, brush: 46, reveil: true });
       });
     });
   })();
