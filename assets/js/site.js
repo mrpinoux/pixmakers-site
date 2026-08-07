@@ -1163,10 +1163,10 @@
       }
     }
 
-    /* Une goutte du logo : des carrés bien séparés, qui partent du bas des
-       lettres et descendent. Empilés bord à bord ils faisaient un trait, et
-       construits vers le haut ils remontaient dans le mot au lieu d'en
-       tomber. Un espace d'une cellule entre chacun, et on descend. */
+    /* Une goutte du logo. Tous les carrés partent du même point — le bas des
+       lettres — et c'est le retard qui les espace, pas leur position. Les
+       poser déjà écartés faisait apparaître le deuxième et le troisième d'un
+       coup dans le vide, sans qu'on les ait vus quitter le mot. */
     function drip(x, y) {
       var s = 6;
       var n = 1 + ((Math.random() * 3) | 0);           // un à trois carrés
@@ -1177,14 +1177,16 @@
       for (var i = 0; i < n; i++) {
         if (motes.length >= MAX) return;
         motes.push({
-          x: bx, y: by + i * s * 2,     // vers le bas, un vide entre chaque
+          x: bx, y: by,
           vx: 0, vy: vy,
           s: s,
           life: 1 + Math.random() * .3,
           fade: .03 * (.7 + Math.random() * .7),
           col: cc,
           calm: false,
-          rigid: true
+          rigid: true,
+          // le temps qu'il faut au précédent pour dégager d'une cellule
+          wait: Math.round(i * (s * 2) / vy)
         });
       }
     }
@@ -1255,6 +1257,9 @@
       cx.clearRect(0, 0, innerWidth, innerHeight);
       for (var k = motes.length - 1; k >= 0; k--) {
         var m = motes[k];
+        // Pas encore parti : il attend son tour au bas des lettres, sans
+        // bouger et sans se peindre.
+        if (m.wait > 0) { m.wait--; continue; }
         m.x += m.vx; m.y += m.vy;
         if (m.rigid) {
           // Rien à faire : la colonne descend à vitesse constante et reste
