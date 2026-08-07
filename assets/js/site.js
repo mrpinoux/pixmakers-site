@@ -1173,24 +1173,19 @@
         var r = fr.r;
 
         if (fr.kind === "brand") {
-          /* Une surcharge, pas une bouffée : tant que le curseur reste sur le
-             logo, la marque continue de fabriquer des pixels. Ils partent de
-             toute sa surface et dans toutes les directions, avec ce qu'il
-             faut de gravité pour qu'ils retombent au lieu de s'échapper. */
+          /* Une fuite, pas une bouffée : tant que le curseur reste sur le
+             logo, la marque continue de lâcher des pixels. */
           if (!brandOn) { fronts.splice(f, 1); continue; }
           fr.t0 = now;                       // elle ne s'épuise pas d'elle-même
-          /* Généreux pour de vrai. Ce qui rendait le geyser accidentel du hero
-             si dense, c'était le nombre de sources tirant en même temps depuis
-             un même point — pas la vitesse d'une seule. On tire donc large :
-             une douzaine par image, une bonne part poussée franchement vers le
-             haut, le reste en éventail. */
-          for (var q = 0; q < 12; q++) {
-            var a = Math.random() * Math.PI * 2;
-            var sp = .5 + Math.random() * 4.2;
-            var up = q % 3 === 0 ? 2.6 : 1.1;      // un tiers monte plus haut
+          /* Ça tombe, ça n'explose pas. Une gerbe dans toutes les directions
+             faisait feu d'artifice ; le mot lâche maintenant ses pixels vers
+             le bas, sur toute sa largeur, avec juste assez de jeu latéral
+             pour que la colonne ne soit pas une règle. */
+          for (var q = 0; q < 6; q++) {
             add(r.left + Math.random() * r.width,
-                r.top + Math.random() * r.height,
-                Math.cos(a) * sp, Math.sin(a) * sp - up);
+                r.bottom - 2 + Math.random() * 4,
+                (Math.random() - .5) * .5,          // presque droit
+                .5 + Math.random() * 1.6);
           }
           continue;
         }
