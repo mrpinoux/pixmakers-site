@@ -452,6 +452,17 @@ h1.shead__title {
   border-top: 1px solid var(--rule-dark);
 }
 
+/* La phrase d'accroche prend toute la ligne. Elle était bridée à 44ch et
+   coincée à côté d'un bouton : deux lignes courtes dans un coin, sous un
+   titre de 140px. À cette échelle-là, elle doit se tenir seule. */
+.hero__pitch {
+  flex: 1 1 100%;
+  max-width: none;
+  font-size: clamp(1.05rem, 1.75vw, 1.6rem);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
 /* --- Work grid (contact sheet) ------------------------------------------- */
 
 /* Filter bar above a long grid. Built by site.js only where there is enough
