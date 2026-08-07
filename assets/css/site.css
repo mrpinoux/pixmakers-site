@@ -705,6 +705,71 @@ h1.shead__title {
 .work:hover .work__title,
 .work:focus-visible .work__title { color: var(--accent); }
 
+/* --- Commanditaires ------------------------------------------------------ */
+
+/* Un bandeau de marques sous la grille : voila les films, voila pour qui.
+   Au repos tout est d'une seule encre, blanche — quatorze chartes graphiques
+   cote a cote, chacune avec son rouge et son jaune, feraient de ce bandeau
+   la zone la plus bruyante d'une page qui n'a qu'un accent. Sous le curseur
+   la marque reprend ses couleurs. C'est la regle des vignettes, qui passent
+   du gris a la couleur au survol : le bandeau parle la meme langue.
+
+   Sur un ecran tactile il n'y a pas de survol : le bandeau reste blanc. Rien
+   ne se perd, la couleur est une recompense, pas une information. */
+.clients {
+  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+  padding-top: clamp(1.4rem, 3vw, 2rem);
+  border-top: 1px solid var(--rule-dark);
+}
+.paper .clients { border-top-color: var(--rule-light); }
+.clients__lede { margin: 0 0 clamp(1.2rem, 2.5vw, 1.8rem); }
+.clients__row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Beaucoup d'air horizontal : c'est lui qui separe deux marques, puisqu'il
+     n'y a ni cadre ni filet entre elles. */
+  gap: clamp(1.5rem, 3.5vw, 3.25rem) clamp(1.75rem, 4vw, 3.75rem);
+}
+/* Une boite commune, remplie en `contain` : un logo carre monte a la hauteur
+   pleine, un logo large s'arrete a la largeur. C'est le compromis habituel —
+   les poids optiques ne sont pas rigoureusement egaux, mais aucune marque
+   n'ecrase sa voisine. */
+.client {
+  --s: 1;                   /* correction optique, posee sur la tuile */
+  position: relative;
+  width: clamp(100px, 12vw, 150px);
+  height: clamp(48px, 5.8vw, 72px);
+  opacity: .72;
+  transition: opacity .3s var(--ease);
+}
+.client:hover { opacity: 1; }
+/* Une boite commune ne suffit pas a egaliser les marques : un verrou dessine
+   au trait fin ne pese pas ce que pese un disque plein de la meme taille.
+   Chaque tuile porte donc un facteur, calcule pour que la surface d'encre
+   soit a peu pres la meme partout — Craie-art monte, Simard et Themtoo
+   descendent. Rien au-dela de 1,25 ni en dessous de 0,80 : la correction
+   rattrape un desequilibre, elle ne redessine pas le logo. */
+.client img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(var(--s));
+}
+.client__hue {
+  opacity: 0;
+  transition: opacity .3s var(--ease);
+}
+.client:hover .client__ink { opacity: 0; }
+.client:hover .client__hue { opacity: 1; }
+.client__ink { transition: opacity .3s var(--ease); }
+
 /* --- Director index (cast list) ------------------------------------------ */
 
 .cast { border-top: 1px solid var(--rule-dark); }
