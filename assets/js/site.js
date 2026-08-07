@@ -1172,14 +1172,19 @@
        et comme rien ne se déplace, la grille se lit comme une grille. */
     var GRID   = 6;               // côté d'une case
     var LEVELS = [1, .5, .1];     // ce qu'il reste après 0, 1 et 2 pas
-    var STEP   = 5;               // images passées sur chaque palier
+    var STEP   = 15;              // images passées sur chaque palier
     var PAD    = 14;              // ce que la zone déborde du mot
     /* Trois teintes de l'accent, rien d'autre. La palette à quatre couleurs
        appartient à la poussière des vignettes ; sur le logo elle faisait
        guirlande. Même parti que l'amas des numéros de section. */
     var PINKS  = ["#ff2e88", "#ff74ad", "#cf005f"];
     var tickCell = 0;             // l'horloge, commune à toute la zone
-    var lit = {};                 // cases allumées : "x,y" -> âge en paliers
+    /* Cases allumées : "col,ligne" -> { a: palier, h: pas à tenir, c: compteur }.
+       Chaque case tient son palier plus ou moins longtemps — l'horloge reste
+       commune, c'est la durée de vie qui varie, pas la vitesse. Une case fixe
+       qui s'attarde ne défait pas la trame ; une case qui se déplace plus vite
+       que sa voisine, si. */
+    var lit = {};
     var zone = null;
 
     function setZone(el) {
@@ -1214,7 +1219,7 @@
         }
         rw = (Math.random() * rows) | 0;
         if (c < 0 || c >= cols || rw < 0 || rw >= rows) continue;
-        lit[c + "," + rw] = 0;
+        lit[c + "," + rw] = { a: 0, h: 1 + ((Math.random() * 3) | 0), c: 0 };
       }
     }
 
@@ -1228,13 +1233,17 @@
            la zone s'éteint d'elle-même. */
         if (brandOn) seedCells();
         for (var i = 0; i < keys.length; i++) {
-          if (++lit[keys[i]] >= LEVELS.length) delete lit[keys[i]];
+          var L = lit[keys[i]];
+          if (++L.c < L.h) continue;             // elle tient encore son palier
+          L.c = 0;
+          if (++L.a >= LEVELS.length) delete lit[keys[i]];
         }
         keys = Object.keys(lit);
       }
       for (var j = 0; j < keys.length; j++) {
-        var p = keys[j].split(","), age = lit[keys[j]];
-        if (age === undefined) continue;
+        var p = keys[j].split(","), L2 = lit[keys[j]];
+        if (!L2) continue;
+        var age = L2.a;
         var cxx = zone.x + p[0] * GRID, cyy = zone.y + p[1] * GRID;
         var h = zone.hole;
         if (h && cxx + GRID > h.left && cxx < h.right &&
