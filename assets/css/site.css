@@ -155,8 +155,7 @@ ul, ol { padding: 0; list-style: none; }
   display: grid;
   grid-template-columns: repeat(3, 6px);
   gap: 2px;
-  align-self: end;
-  padding-bottom: .3em;
+  align-self: center;      /* centré sur le titre, pas posé sur sa ligne de base */
 }
 .numstack i { display: block; width: 6px; height: 6px; }
 .numstack i[data-s="0"] { background: var(--accent); }

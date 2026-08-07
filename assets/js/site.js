@@ -1662,8 +1662,26 @@
    * -------------------------------------------------------------------------- */
 
   document.querySelectorAll(".shead > .num").forEach(function (el) {
-    var n = parseInt((el.textContent || "").trim(), 10);
-    if (!n || n > 12) return;              // a range like "01 — 04" is left alone
+    var txt = (el.textContent || "").trim();
+    var n = parseInt(txt, 10);
+    /* Une plage garde ses chiffres. Le garde-fou ne tenait que par le nombre
+       lu en tête : « 01 — 110 » commence par 1, passait donc pour une section
+       et se retrouvait réduit à quatre pixels — alors que c'est un compte de
+       photos, la seule chose que ce libellé ait à dire. */
+    if (/\d\s*[—–-]\s*\d/.test(txt)) return;
+    if (n > 12) return;
+    if (!n) {
+      /* Les pages sans numéro portaient un pictogramme — ↯ pour Backstage,
+         ✆ pour Contact. Un glyphe de police au milieu d'un site qui parle de
+         pixels détonnait. On lui fabrique son propre amas, tiré de ses
+         caractères : toujours le même pour un signe donné, différent d'un
+         signe à l'autre. */
+      if (!txt) return;
+      n = 0;
+      for (var c = 0; c < txt.length; c++) n = (n * 31 + txt.charCodeAt(c)) >>> 0;
+      n = 1 + (n % 4);                     // même densité que les sections
+                                           // numérotées : 4 à 7 cellules
+    }
     el.classList.add("numstack");
     el.setAttribute("aria-label", String(n));
     // A small cluster rather than a column: n cells lit inside a 3x4 grid,
