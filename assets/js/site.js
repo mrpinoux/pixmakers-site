@@ -1164,32 +1164,41 @@
       }
     }
 
-    /* Une goutte du logo. Tous les carrés partent du même point — le bas des
-       lettres — et c'est le retard qui les espace, pas leur position. Les
-       poser déjà écartés faisait apparaître le deuxième et le troisième d'un
-       coup dans le vide, sans qu'on les ait vus quitter le mot. */
+    /* Une goutte du logo : un petit amas de carrés qui se touchent, pas une
+       file de points espacés. C'est ce qui fait lire « pixel » — un pixel
+       isolé au milieu du noir ressemble à une poussière, deux ou trois collés
+       ressemblent à un morceau d'image. L'amas tombe d'un bloc, à une seule
+       vitesse, sinon il se défait en route.
+       Les formes tiennent dans un carré de deux cellules, toutes contiguës. */
+    var CLUMPS = [
+      [[0, 0]],
+      [[0, 0], [1, 0]],
+      [[0, 0], [0, 1]],
+      [[0, 0], [1, 0], [0, 1]],
+      [[0, 0], [1, 0], [1, 1]],
+      [[0, 0], [0, 1], [1, 1]],
+      [[0, 0], [1, 0], [0, 1], [1, 1]]
+    ];
+
     function drip(x, y) {
       var s = 6;
-      var n = 1 + ((Math.random() * 3) | 0);           // un à trois carrés
+      var shape = CLUMPS[(Math.random() * CLUMPS.length) | 0];
       var vy = .7 + Math.random() * .5;
       var cc = PALETTE[(Math.random() * PALETTE.length) | 0];
       var bx = Math.round(x / s) * s;
       var by = Math.round(y / s) * s;
-      for (var i = 0; i < n; i++) {
+      for (var i = 0; i < shape.length; i++) {
         if (motes.length >= MAX) return;
         motes.push({
-          x: bx, y: by,
-          vx: 0, vy: vy,
+          x: bx + shape[i][0] * s,
+          y: by + shape[i][1] * s,     // cellules jointives, pas d'écart
+          vx: 0, vy: vy,               // même vitesse : l'amas reste soudé
           s: s,
           life: 1 + Math.random() * .3,
           fade: .03 * (.7 + Math.random() * .7),
           col: cc,
           calm: false,
-          rigid: true,
-          // le temps qu'il faut au précédent pour dégager d'une cellule et
-          // demie : assez pour qu'on les distingue, assez peu pour que la
-          // colonne se lise comme une colonne
-          wait: Math.round(i * (s * 1.5) / vy)
+          rigid: true
         });
       }
     }
@@ -1219,9 +1228,9 @@
              d'arroser au hasard. */
           if (brandX === null) continue;
           if (Math.random() < .8) continue;         // une image sur cinq environ
-          /* Un pas de 7 pour des carrés de 6 : ils se frôlent sans se
-             toucher, donc on lit une trame et pas une suite de bâtons. */
-          var PITCH = 7;
+          /* Le pas vaut la cellule : deux amas voisins se touchent, la trame
+             est continue. */
+          var PITCH = 6;
           var REACH = 30;                           // largeur de la zone qui goutte
           var x = brandX + (Math.random() - .5) * 2 * REACH;
           x = Math.max(r.left, Math.min(r.right - PITCH, x));
