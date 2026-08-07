@@ -833,6 +833,14 @@
     function measure() {
       chars.forEach(function (c) {
         var r = c.el.getBoundingClientRect();
+        /* Le titre porte ses deux langues : celle qu'on n'affiche pas est en
+           display:none et mesure zéro, donc son centre tombait sur (0,0) du
+           canvas. Trente-sept lettres françaises invisibles crachaient toutes
+           leur poussière depuis le coin haut-gauche du hero — un geyser que
+           rien ne justifiait. On les met de côté ; elles reviendront à la
+           bascule, quand elles auront une boîte. */
+        c.off = !r.width || !r.height;
+        if (c.off) return;
         c.cx = r.left + r.width / 2 - c.x;
         c.cy = r.top + r.height / 2 - c.y;
         c.w = r.width;
@@ -862,6 +870,7 @@
       var ghosts = [];
       for (var i = 0; i < chars.length; i++) {
         var c = chars[i], tx = 0, ty = 0, ts = 1;
+        if (c.off) continue;              // lettre de l'autre langue, sans boîte
         if (active) {
           var dx = c.cx - px, dy = c.cy - py;
           var d = Math.sqrt(dx * dx + dy * dy) || .001;
@@ -986,6 +995,40 @@
       matchMedia("(hover: hover) and (pointer: fine)").matches &&
       !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     document.querySelectorAll("[data-scatter]").forEach(initScatter);
+
+  /* ---- Le titre du hero tient dans sa colonne ------------------------------ *
+   * Le corps venait d'un clamp en vw, qui ne sait rien de la longueur des
+   * mots : à 1350px « COLLECTIVE » débordait et perdait son E, « DIRECTORS »
+   * son S. Un mot amputé ne se lit pas comme un choix, il se lit comme une
+   * page cassée. On mesure le mot le plus large et on réduit juste assez.
+   * Le français a des mots plus longs — RÉALISATEURS — donc ça se recalcule
+   * à chaque bascule.
+   * -------------------------------------------------------------------------- */
+
+  (function fitHero() {
+    var t = document.querySelector(".hero__title");
+    if (!t) return;
+
+    function fit() {
+      t.style.fontSize = "";                 // repartir de la valeur du CSS
+      var words = t.querySelectorAll(".wd");
+      if (!words.length) return;
+      var avail = t.clientWidth;
+      var max = 0;
+      words.forEach(function (wd) {
+        var r = wd.getBoundingClientRect();
+        if (r.width > max) max = r.width;
+      });
+      if (!max || max <= avail) return;
+      var cur = parseFloat(getComputedStyle(t).fontSize);
+      t.style.fontSize = Math.floor(cur * (avail / max)) + "px";
+    }
+
+    fit();
+    addEventListener("resize", fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    onLang(function () { setTimeout(fit, 0); });
+  })();
   }
 
   /* ---- Dust off the accent shape ------------------------------------------- *
@@ -1136,12 +1179,18 @@
              faut de gravité pour qu'ils retombent au lieu de s'échapper. */
           if (!brandOn) { fronts.splice(f, 1); continue; }
           fr.t0 = now;                       // elle ne s'épuise pas d'elle-même
-          for (var q = 0; q < 5; q++) {
+          /* Généreux pour de vrai. Ce qui rendait le geyser accidentel du hero
+             si dense, c'était le nombre de sources tirant en même temps depuis
+             un même point — pas la vitesse d'une seule. On tire donc large :
+             une douzaine par image, une bonne part poussée franchement vers le
+             haut, le reste en éventail. */
+          for (var q = 0; q < 12; q++) {
             var a = Math.random() * Math.PI * 2;
-            var sp = .6 + Math.random() * 3.4;
+            var sp = .5 + Math.random() * 4.2;
+            var up = q % 3 === 0 ? 2.6 : 1.1;      // un tiers monte plus haut
             add(r.left + Math.random() * r.width,
                 r.top + Math.random() * r.height,
-                Math.cos(a) * sp, Math.sin(a) * sp - 1.1);
+                Math.cos(a) * sp, Math.sin(a) * sp - up);
           }
           continue;
         }
