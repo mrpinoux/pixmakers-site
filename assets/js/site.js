@@ -1426,27 +1426,142 @@
       mosaic(box, { block: 13, brush: 96 });
     });
 
-    /* Les vignettes sont couvertes d'emblée, comme un portrait : on doit voir
-       la grille pixelisée avant d'y toucher, sinon rien n'invite à frotter.
-       Mais on ne monte la mosaïque qu'à l'approche de l'écran — soixante-neuf
-       canvas d'un coup au chargement, c'est cher pour des vignettes qu'on ne
-       verra peut-être jamais. Ce qui est dégagé le reste : repasser continue
-       de révéler, et seul un rechargement remet tout à zéro. */
-    var tiles = document.querySelectorAll(".work__media");
-    if (tiles.length) {
-      if (window.IntersectionObserver) {
-        var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (e) {
-            if (!e.isIntersecting) return;
-            io.unobserve(e.target);
-            mosaic(e.target, { block: 8, brush: 46 });
-          });
-        }, { rootMargin: "300px" });      // prêtes avant d'entrer dans le champ
-        tiles.forEach(function (t) { io.observe(t); });
-      } else {
-        tiles.forEach(function (t) { mosaic(t, { block: 8, brush: 46 }); });
+    /* Les vignettes, elles, arrivent nettes et le restent. Au survol, une
+       tache pixelisée se peint sous le curseur — l'inverse du portrait, où
+       l'on enlève un voile — et elle s'efface derrière lui, donc c'est bien
+       une zone qui suit la souris et non une couverture qui s'accumule. Les
+       pixels qui en tombent sont échantillonnés dans l'image, aux couleurs
+       de l'endroit exact où ils se détachent. */
+    document.querySelectorAll(".work__media").forEach(function (media) {
+      var img = media.querySelector("img");
+      if (!img) return;
+
+      var BLOCK = 9;     // côté d'une cellule, en px écran
+      var BRUSH = 44;    // rayon de la tache
+      var FADE  = .07;   // ce qu'elle perd par image
+
+      var cv, cx, off, ox, noise, mdata;
+      var w = 0, h = 0, lw = 0, lh = 0, dpr = Math.min(devicePixelRatio || 1, 2);
+      var ready = false, live = false, inside = false;
+      var falling = [];
+
+      function build() {
+        var b = media.getBoundingClientRect();
+        if (!b.width || !img.naturalWidth) return false;
+        if (ready && Math.abs(b.width - w) < 1) return true;
+
+        w = b.width; h = b.height;
+        if (!cv) {
+          cv = document.createElement("canvas");
+          cv.className = "px-patch";
+          cv.setAttribute("aria-hidden", "true");
+          media.appendChild(cv);
+          cx = cv.getContext("2d");
+          off = document.createElement("canvas");
+          ox = off.getContext("2d", { willReadFrequently: true });
+        }
+        cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+        cv.style.width = w + "px"; cv.style.height = h + "px";
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx.imageSmoothingEnabled = false;
+
+        // Une version basse définition : c'est elle qu'on agrandit, cellule
+        // par cellule, plutôt que de flouter l'image à la volée.
+        lw = Math.max(1, Math.round(w / BLOCK));
+        lh = Math.max(1, Math.round(h / BLOCK));
+        off.width = lw; off.height = lh;
+        ox.imageSmoothingEnabled = false;
+        ox.drawImage(img, 0, 0, lw, lh);
+        try { mdata = ox.getImageData(0, 0, lw, lh).data; }
+        catch (e) { mdata = null; }        // image d'un autre domaine
+
+        // Un grain fixe par cellule : tiré à chaque image, le bord bouillonne.
+        noise = new Float32Array(lw * lh);
+        for (var n = 0; n < noise.length; n++) noise[n] = Math.random();
+        ready = true;
+        return true;
       }
-    }
+
+      function frame() {
+        // La tache s'efface d'elle-même : sans ça, promener le curseur
+        // finirait par pixeliser toute la vignette.
+        cx.globalCompositeOperation = "destination-out";
+        cx.fillStyle = "rgba(0,0,0," + FADE + ")";
+        cx.fillRect(0, 0, w, h);
+        cx.globalCompositeOperation = "source-over";
+
+        for (var i = falling.length - 1; i >= 0; i--) {
+          var f = falling[i];
+          f.y += f.vy;
+          f.vy += .16;
+          f.life -= .022;
+          if (f.life <= 0 || f.y > h) { falling.splice(i, 1); continue; }
+          cx.globalAlpha = f.life > 1 ? 1 : f.life;
+          cx.fillStyle = f.col;
+          cx.fillRect(f.x | 0, f.y | 0, f.s, f.s);
+        }
+        cx.globalAlpha = 1;
+
+        if (inside || falling.length) requestAnimationFrame(frame);
+        else { live = false; cx.clearRect(0, 0, w, h); }
+      }
+
+      media.addEventListener("mouseenter", function () { inside = true; });
+      media.addEventListener("mouseleave", function () { inside = false; });
+
+      media.addEventListener("mousemove", function (e) {
+        if (!build()) return;
+        var b = media.getBoundingClientRect();
+        var mx = e.clientX - b.left, my = e.clientY - b.top;
+        var cw = w / lw, ch = h / lh;
+
+        var i0 = Math.max(0, ((mx - BRUSH) / cw) | 0);
+        var i1 = Math.min(lw - 1, ((mx + BRUSH) / cw) | 0);
+        var j0 = Math.max(0, ((my - BRUSH) / ch) | 0);
+        var j1 = Math.min(lh - 1, ((my + BRUSH) / ch) | 0);
+
+        for (var j = j0; j <= j1; j++) {
+          for (var i = i0; i <= i1; i++) {
+            var dx = (i + .5) * cw - mx, dy = (j + .5) * ch - my;
+            var d = Math.sqrt(dx * dx + dy * dy);
+            var nz = noise[j * lw + i];
+            // Le bord est mangé par le grain : un disque net ferait compas.
+            var edge = BRUSH * (.55 + .5 * nz);
+            if (d > edge) continue;
+            var al = Math.min(1, (1 - d / edge) * (.55 + .5 * nz));
+            if (al < .04) continue;
+            cx.globalAlpha = al;
+            cx.drawImage(off, i, j, 1, 1, i * cw, j * ch, cw + .5, ch + .5);
+          }
+        }
+        cx.globalAlpha = 1;
+
+        // Une cellule ou deux se détachent du pourtour et tombent, dans la
+        // couleur qu'elles avaient là où elles étaient.
+        if (mdata && falling.length < 40) {
+          for (var k = 0; k < 2; k++) {
+            if (Math.random() > .34) continue;
+            var ang = Math.random() * Math.PI * 2;
+            var rad = BRUSH * (.45 + Math.random() * .55);
+            var ci = ((mx + Math.cos(ang) * rad) / cw) | 0;
+            var cj = ((my + Math.sin(ang) * rad) / ch) | 0;
+            if (ci < 0 || cj < 0 || ci >= lw || cj >= lh) continue;
+            var o = (cj * lw + ci) * 4;
+            falling.push({
+              x: ci * cw, y: cj * ch,
+              vy: .3 + Math.random() * .9,
+              s: Math.max(3, Math.round(cw)),
+              life: 1 + Math.random() * .5,
+              col: "rgb(" + mdata[o] + "," + mdata[o + 1] + "," + mdata[o + 2] + ")"
+            });
+          }
+        }
+
+        if (!live) { live = true; requestAnimationFrame(frame); }
+      });
+
+      addEventListener("resize", function () { ready = false; });
+    });
   })();
 
   /* ---- Images resolve out of a mosaic -------------------------------------- *

@@ -903,6 +903,15 @@ h1.shead__title {
    permanent trail, since the veil is never redrawn — only erased into. */
 .px-fall { z-index: 1; }
 
+/* La tache pixelisée d'une vignette : au-dessus de l'image, sous le bouton
+   de lecture. Vide au repos — elle ne se peint que sous le curseur. */
+.px-patch {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* The load-in mosaic. Sits over the picture it is standing in for and is
    removed once it has stepped down to it. Inert, and above the image but under
    any play mark or caption. */
