@@ -1168,15 +1168,18 @@ h1.shead__title {
    faisait couper en plein mot. Reduire le corps aurait marche, mais le nom
    de la ville est le titre de la carte : c'est la colonne qui doit ceder,
    pas la typographie. */
+/* Un cadre par ville, pas un panneau coupe en deux. Le filet d'un pixel
+   entre deux cases collees se lisait comme une separation a l'interieur d'un
+   meme bloc ; deux bureaux dans deux villes ne sont pas une liste, ce sont
+   deux adresses. */
 .offices {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1px;
-  background: var(--rule-light);
-  border: 1px solid var(--rule-light);
+  gap: clamp(1rem, 2.5vw, 1.75rem);
 }
 .office {
   background: var(--paper);
+  border: 1px solid var(--rule-light);
   padding: clamp(1.5rem, 4vw, 2.75rem);
 }
 .office__city {
