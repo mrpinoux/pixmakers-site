@@ -864,6 +864,60 @@ h1.shead__title {
   .cast__go   { grid-column: 2; }
 }
 
+/* --- What we do ---------------------------------------------------------- */
+
+/* Four statements of scope, on the same rules, numerals and mono caption face
+   as everything else. Deliberately not built on .cast: those rows light up
+   and slide under the cursor because each one leads somewhere, and nothing
+   here does. A panel that reacts like a link but refuses to open is worse
+   than a panel that sits still.
+   auto-fit rather than a media query — four across on a desktop, two on a
+   tablet, one on a phone, with no breakpoint to keep in step. */
+.doing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: clamp(1.6rem, 3vw, 2.75rem);
+  margin-top: clamp(1.5rem, 3vw, 2.25rem);
+}
+.doing__item {
+  border-top: 1px solid var(--rule-dark);
+  padding-top: .9rem;
+}
+.paper .doing__item { border-top-color: var(--rule-light); }
+.doing__item .num { display: block; margin-bottom: .7rem; }
+.doing__name {
+  display: block;
+  font-variation-settings: "wdth" 110, "wght" 900;
+  text-transform: uppercase;
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  line-height: 1.05;
+  letter-spacing: -.01em;
+  margin-bottom: .55rem;
+  /* Two lines reserved for every heading, whether it needs them or not: one
+     short name next to a wrapping one starts its caption a line higher, and
+     four captions at four different heights read as four mistakes. A floor,
+     not a cap — French runs longer and a third line is free to happen. */
+  min-height: 2.1em;
+  text-wrap: balance;
+}
+.doing__note {
+  display: block;
+  font-family: var(--mono);
+  font-size: clamp(.72rem, .9vw, .82rem);
+  line-height: 1.55;
+  letter-spacing: .04em;
+  color: var(--on-dark-muted);
+}
+.paper .doing__note { color: var(--on-light-muted); }
+
+/* Une seule colonne : il n'y a plus rien à aligner, et la ligne réservée sous
+   un titre court n'est plus qu'un trou. Après la règle de base, donc elle la
+   remplace — une requête média n'ajoute aucune spécificité, seulement un
+   ordre. */
+@media (max-width: 560px) {
+  .doing__name { min-height: 0; }
+}
+
 /* --- Director profile ---------------------------------------------------- */
 
 .profile {
