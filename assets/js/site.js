@@ -999,41 +999,56 @@
       matchMedia("(hover: hover) and (pointer: fine)").matches &&
       !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     document.querySelectorAll("[data-scatter]").forEach(initScatter);
+  }
 
-  /* ---- Le titre du hero tient dans sa colonne ------------------------------ *
+  /* ---- Les grands titres tiennent dans leur colonne ------------------------ *
    * Le corps venait d'un clamp en vw, qui ne sait rien de la longueur des
    * mots : à 1350px « COLLECTIVE » débordait et perdait son E, « DIRECTORS »
    * son S. Un mot amputé ne se lit pas comme un choix, il se lit comme une
-   * page cassée. On mesure le mot le plus large et on réduit juste assez.
-   * Le français a des mots plus longs — RÉALISATEURS — donc ça se recalcule
-   * à chaque bascule.
+   * page cassée. On mesure le plus large et on réduit juste assez.
+   *
+   * Le français a des mots plus longs — RÉALISATEURS fait 1617px là où la
+   * colonne en offre 1153, et le débordement faisait glisser la page entière
+   * de côté. C'est pour ça que ça se recalcule à chaque bascule de langue,
+   * et que le titre de la page des réalisateurs est traité comme celui du
+   * hero.
+   *
+   * Hors du bloc au-dessus, volontairement : il est réservé aux souris sur
+   * machine qui accepte l'animation, et un titre coupé n'est pas une
+   * animation. Quand l'éclatement en mots n'a pas eu lieu, on mesure la
+   * ligne entière plutôt que le mot le plus large.
    * -------------------------------------------------------------------------- */
 
-  (function fitHero() {
-    var t = document.querySelector(".hero__title");
-    if (!t) return;
+  (function fitTitles() {
+    var titles = [].slice.call(
+      document.querySelectorAll(".hero__title, .dintro__title"));
+    if (!titles.length) return;
 
-    function fit() {
+    function fitOne(t) {
       t.style.fontSize = "";                 // repartir de la valeur du CSS
-      var words = t.querySelectorAll(".wd");
-      if (!words.length) return;
       var avail = t.clientWidth;
+      var words = t.querySelectorAll(".wd");
       var max = 0;
-      words.forEach(function (wd) {
-        var r = wd.getBoundingClientRect();
-        if (r.width > max) max = r.width;
-      });
+      if (words.length) {
+        words.forEach(function (wd) {
+          var r = wd.getBoundingClientRect();
+          if (r.width > max) max = r.width;
+        });
+      } else {
+        max = t.scrollWidth;
+      }
       if (!max || max <= avail) return;
       var cur = parseFloat(getComputedStyle(t).fontSize);
       t.style.fontSize = Math.floor(cur * (avail / max)) + "px";
     }
+
+    function fit() { titles.forEach(fitOne); }
 
     fit();
     addEventListener("resize", fit);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
     onLang(function () { setTimeout(fit, 0); });
   })();
-  }
 
   /* ---- Dust off the accent shape ------------------------------------------- *
    * Not a cursor toy. The pixels are thrown by the accent shape itself, so the
