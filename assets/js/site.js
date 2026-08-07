@@ -1174,17 +1174,27 @@
     var LEVELS = [1, .5, .1];     // ce qu'il reste après 0, 1 et 2 pas
     var STEP   = 5;               // images passées sur chaque palier
     var PAD    = 14;              // ce que la zone déborde du mot
+    /* Trois teintes de l'accent, rien d'autre. La palette à quatre couleurs
+       appartient à la poussière des vignettes ; sur le logo elle faisait
+       guirlande. Même parti que l'amas des numéros de section. */
+    var PINKS  = ["#ff2e88", "#ff74ad", "#cf005f"];
     var tickCell = 0;             // l'horloge, commune à toute la zone
     var lit = {};                 // cases allumées : "x,y" -> âge en paliers
     var zone = null;
 
     function setZone(el) {
       var r = el.getBoundingClientRect();
+      /* Le mot lui-même, qu'aucune case ne recouvre. La barre est un contexte
+         d'empilement à elle seule : on ne peut pas faire passer le logo
+         au-dessus d'un calque qui vit dehors. On ne peint donc pas dessus —
+         le résultat à l'œil est le même, et les pixels encadrent le mot au
+         lieu de le manger. */
       zone = {
         x: Math.floor((r.left - PAD) / GRID) * GRID,
         y: Math.floor((r.top - PAD) / GRID) * GRID,
         w: Math.ceil((r.width + PAD * 2) / GRID) * GRID,
-        h: Math.ceil((r.height + PAD * 2) / GRID) * GRID
+        h: Math.ceil((r.height + PAD * 2) / GRID) * GRID,
+        hole: { left: r.left - 1, right: r.right + 1, top: r.top - 1, bottom: r.bottom + 1 }
       };
     }
 
@@ -1213,7 +1223,10 @@
       var step = (++tickCell % STEP) === 0;
       var keys = Object.keys(lit);
       if (step) {
-        seedCells();
+        /* On n'alimente que tant que le curseur est là. En sortant, plus
+           aucune case neuve : celles qui brûlent finissent leurs paliers et
+           la zone s'éteint d'elle-même. */
+        if (brandOn) seedCells();
         for (var i = 0; i < keys.length; i++) {
           if (++lit[keys[i]] >= LEVELS.length) delete lit[keys[i]];
         }
@@ -1222,9 +1235,13 @@
       for (var j = 0; j < keys.length; j++) {
         var p = keys[j].split(","), age = lit[keys[j]];
         if (age === undefined) continue;
+        var cxx = zone.x + p[0] * GRID, cyy = zone.y + p[1] * GRID;
+        var h = zone.hole;
+        if (h && cxx + GRID > h.left && cxx < h.right &&
+                 cyy + GRID > h.top  && cyy < h.bottom) continue;
         cx.globalAlpha = LEVELS[age];
-        cx.fillStyle = PALETTE[(((+p[0]) * 7 + (+p[1]) * 13) % PALETTE.length)];
-        cx.fillRect(zone.x + p[0] * GRID, zone.y + p[1] * GRID, GRID, GRID);
+        cx.fillStyle = PINKS[(((+p[0]) * 7 + (+p[1]) * 13) % PINKS.length)];
+        cx.fillRect(cxx, cyy, GRID, GRID);
       }
       cx.globalAlpha = 1;
     }
