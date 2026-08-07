@@ -1164,43 +1164,44 @@
       }
     }
 
-    /* Une goutte du logo : un petit amas de carrés qui se touchent, pas une
-       file de points espacés. C'est ce qui fait lire « pixel » — un pixel
-       isolé au milieu du noir ressemble à une poussière, deux ou trois collés
-       ressemblent à un morceau d'image. L'amas tombe d'un bloc, à une seule
-       vitesse, sinon il se défait en route.
-       Les formes tiennent dans un carré de deux cellules, toutes contiguës. */
-    var CLUMPS = [
-      [[0, 0]],
-      [[0, 0], [1, 0]],
-      [[0, 0], [0, 1]],
-      [[0, 0], [1, 0], [0, 1]],
-      [[0, 0], [1, 0], [1, 1]],
-      [[0, 0], [0, 1], [1, 1]],
-      [[0, 0], [1, 0], [0, 1], [1, 1]]
-    ];
+    /* Une goutte du logo. Ce n'est pas un carré qui tombe, c'est une case qui
+       s'allume puis passe le relais à celle du dessous. La cellule 01, au pied
+       des lettres, part à pleine force ; quand la 02 s'allume, la 01 tombe à
+       la moitié ; quand la 03 s'allume, la 01 n'est plus qu'à un dixième et la
+       02 à la moitié. Trois cases vivantes à la fois, jamais plus — ce qui
+       descend est la lumière, pas l'objet. */
+    var TRAIL = [1, .5, .1];      // tête, puis les deux précédentes
+    var runners = [];
 
     function drip(x, y) {
       var s = 6;
-      var shape = CLUMPS[(Math.random() * CLUMPS.length) | 0];
-      var vy = .7 + Math.random() * .5;
-      var cc = PALETTE[(Math.random() * PALETTE.length) | 0];
-      var bx = Math.round(x / s) * s;
-      var by = Math.round(y / s) * s;
-      for (var i = 0; i < shape.length; i++) {
-        if (motes.length >= MAX) return;
-        motes.push({
-          x: bx + shape[i][0] * s,
-          y: by + shape[i][1] * s,     // cellules jointives, pas d'écart
-          vx: 0, vy: vy,               // même vitesse : l'amas reste soudé
-          s: s,
-          life: 1 + Math.random() * .3,
-          fade: .03 * (.7 + Math.random() * .7),
-          col: cc,
-          calm: false,
-          rigid: true
-        });
+      runners.push({
+        x: Math.round(x / s) * s,
+        y: Math.round(y / s) * s,
+        s: s,
+        head: 0,                                    // case allumée en ce moment
+        t: 0,
+        every: 3 + ((Math.random() * 3) | 0),       // images passées sur chaque case
+        len: 7 + ((Math.random() * 11) | 0),        // cases parcourues avant l'arrêt
+        col: PALETTE[(Math.random() * PALETTE.length) | 0]
+      });
+    }
+
+    function drawRunners() {
+      for (var i = runners.length - 1; i >= 0; i--) {
+        var R = runners[i];
+        if (++R.t >= R.every) { R.t = 0; R.head++; }
+        // la queue a dépassé la dernière case : plus rien à peindre
+        if (R.head - (TRAIL.length - 1) > R.len) { runners.splice(i, 1); continue; }
+        cx.fillStyle = R.col;
+        for (var k = 0; k < TRAIL.length; k++) {
+          var cell = R.head - k;
+          if (cell < 0 || cell > R.len) continue;
+          cx.globalAlpha = TRAIL[k];
+          cx.fillRect(R.x, R.y + cell * R.s, R.s, R.s);
+        }
       }
+      cx.globalAlpha = 1;
     }
 
     function tick(now) {
@@ -1306,8 +1307,9 @@
         cx.fillRect(m.x | 0, m.y | 0, m.s, m.s);
       }
       cx.globalAlpha = 1;
+      drawRunners();
 
-      if (motes.length || fronts.length) requestAnimationFrame(tick);
+      if (motes.length || fronts.length || runners.length) requestAnimationFrame(tick);
       else running = false;
     }
 
