@@ -1186,8 +1186,10 @@
           col: cc,
           calm: false,
           rigid: true,
-          // le temps qu'il faut au précédent pour dégager d'une cellule
-          wait: Math.round(i * (s * 2) / vy)
+          // le temps qu'il faut au précédent pour dégager d'une cellule et
+          // demie : assez pour qu'on les distingue, assez peu pour que la
+          // colonne se lise comme une colonne
+          wait: Math.round(i * (s * 1.5) / vy)
         });
       }
     }
@@ -1217,8 +1219,10 @@
              d'arroser au hasard. */
           if (brandX === null) continue;
           if (Math.random() < .8) continue;         // une image sur cinq environ
-          var PITCH = 12;
-          var REACH = 34;                           // largeur de la zone qui goutte
+          /* Un pas de 7 pour des carrés de 6 : ils se frôlent sans se
+             toucher, donc on lit une trame et pas une suite de bâtons. */
+          var PITCH = 7;
+          var REACH = 30;                           // largeur de la zone qui goutte
           var x = brandX + (Math.random() - .5) * 2 * REACH;
           x = Math.max(r.left, Math.min(r.right - PITCH, x));
           drip(Math.round((x - r.left) / PITCH) * PITCH + r.left, r.bottom);
