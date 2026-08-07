@@ -1083,6 +1083,7 @@
 
     var motes = [], fronts = [], running = false;
     var brandOn = false;
+    var brandX = null;      // où le curseur se trouve sur le mot
 
     // Matches the CSS easing on both shapes, so the pixels ride the same curve
     // the accent does rather than drifting out of step with it.
@@ -1210,11 +1211,17 @@
              une goutte de temps en temps — quelques pixels soudés, calés sur
              un pas fixe, qui descendent ensemble. La grille se lit parce que
              les départs sont alignés et rares, pas parce qu'ils sont nombreux. */
-          var PITCH = 12;
-          var cols = Math.max(2, Math.round(r.width / PITCH));
+          /* Ça coule de là où on pointe, pas de tout le mot — comme la tache
+             sur une vignette ou la brosse sur un portrait. Sans repère de
+             curseur (au tout premier instant), on ne lâche rien plutôt que
+             d'arroser au hasard. */
+          if (brandX === null) continue;
           if (Math.random() < .8) continue;         // une image sur cinq environ
-          var col = (Math.random() * cols) | 0;
-          drip(r.left + col * (r.width / cols), r.bottom);
+          var PITCH = 12;
+          var REACH = 34;                           // largeur de la zone qui goutte
+          var x = brandX + (Math.random() - .5) * 2 * REACH;
+          x = Math.max(r.left, Math.min(r.right - PITCH, x));
+          drip(Math.round((x - r.left) / PITCH) * PITCH + r.left, r.bottom);
           continue;
         }
 
@@ -1333,7 +1340,11 @@
         brandOn = true;
         launch(el, "brand", false);
       });
-      el.addEventListener("mouseleave", function () { brandOn = false; });
+      el.addEventListener("mousemove", function (e) { brandX = e.clientX; });
+      el.addEventListener("mouseleave", function () {
+        brandOn = false;
+        brandX = null;
+      });
     });
   })();
   /* ---- Blur-up portraits --------------------------------------------------- *
