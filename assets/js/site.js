@@ -1163,6 +1163,32 @@
       }
     }
 
+    /* Une goutte du logo : des carrés bien séparés, qui partent du bas des
+       lettres et descendent. Empilés bord à bord ils faisaient un trait, et
+       construits vers le haut ils remontaient dans le mot au lieu d'en
+       tomber. Un espace d'une cellule entre chacun, et on descend. */
+    function drip(x, y) {
+      var s = 6;
+      var n = 1 + ((Math.random() * 3) | 0);           // un à trois carrés
+      var vy = .7 + Math.random() * .5;
+      var cc = PALETTE[(Math.random() * PALETTE.length) | 0];
+      var bx = Math.round(x / s) * s;
+      var by = Math.round(y / s) * s;
+      for (var i = 0; i < n; i++) {
+        if (motes.length >= MAX) return;
+        motes.push({
+          x: bx, y: by + i * s * 2,     // vers le bas, un vide entre chaque
+          vx: 0, vy: vy,
+          s: s,
+          life: 1 + Math.random() * .3,
+          fade: .03 * (.7 + Math.random() * .7),
+          col: cc,
+          calm: false,
+          rigid: true
+        });
+      }
+    }
+
     function tick(now) {
       // --- fronts: the moving edges that are currently throwing pixels ------
       for (var f = fronts.length - 1; f >= 0; f--) {
@@ -1182,11 +1208,11 @@
              une goutte de temps en temps — quelques pixels soudés, calés sur
              un pas fixe, qui descendent ensemble. La grille se lit parce que
              les départs sont alignés et rares, pas parce qu'ils sont nombreux. */
-          var PITCH = 10;
+          var PITCH = 12;
           var cols = Math.max(2, Math.round(r.width / PITCH));
-          if (Math.random() < .82) continue;        // une image sur cinq environ
+          if (Math.random() < .8) continue;         // une image sur cinq environ
           var col = (Math.random() * cols) | 0;
-          fallColumn(r.left + col * (r.width / cols), r.bottom, null, true);
+          drip(r.left + col * (r.width / cols), r.bottom);
           continue;
         }
 
