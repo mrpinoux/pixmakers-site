@@ -435,7 +435,10 @@ h1.shead__title {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 60;
+  /* Au-dessus de la barre (100), en dessous de la lightbox (200). Sous la
+     barre, les pixels lâchés par le logo se peignaient derrière un bandeau
+     opaque : on n'en voyait que ceux qui s'en échappaient. */
+  z-index: 120;
   pointer-events: none;
 }
 
