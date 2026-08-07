@@ -1009,12 +1009,13 @@
     if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    var BRAND = ".brand";
     var ROWS  = ".cast__row";
     /* Plus aucune vignette ici : elles ont toutes la tache pixelisée, qui se
        suffit. Il ne reste que les lignes de la liste des réalisateurs, où le
        remplissage balaie de gauche à droite et où les pixels le devancent. */
     var TILES = "";
-    if (!document.querySelector(ROWS)) return;
+    if (!document.querySelector(ROWS) && !document.querySelector(BRAND)) return;
 
     var PALETTE = ["#ff2e88", "#3ddcff", "#ffc247", "#7cf03d"];
     var MAX = 320;
@@ -1038,6 +1039,7 @@
     addEventListener("resize", size);
 
     var motes = [], fronts = [], running = false;
+    var brandOn = false;
 
     // Matches the CSS easing on both shapes, so the pixels ride the same curve
     // the accent does rather than drifting out of step with it.
@@ -1127,6 +1129,23 @@
         var p = ease(t);
         var r = fr.r;
 
+        if (fr.kind === "brand") {
+          /* Une surcharge, pas une bouffée : tant que le curseur reste sur le
+             logo, la marque continue de fabriquer des pixels. Ils partent de
+             toute sa surface et dans toutes les directions, avec ce qu'il
+             faut de gravité pour qu'ils retombent au lieu de s'échapper. */
+          if (!brandOn) { fronts.splice(f, 1); continue; }
+          fr.t0 = now;                       // elle ne s'épuise pas d'elle-même
+          for (var q = 0; q < 5; q++) {
+            var a = Math.random() * Math.PI * 2;
+            var sp = .6 + Math.random() * 3.4;
+            add(r.left + Math.random() * r.width,
+                r.top + Math.random() * r.height,
+                Math.cos(a) * sp, Math.sin(a) * sp - 1.1);
+          }
+          continue;
+        }
+
         if (fr.kind === "row") {
           // The fill's leading edge, sweeping left to right either way: it
           // grows from the left going in, and collapses to the right coming
@@ -1213,7 +1232,7 @@
         sw: kind === "tile" ? swatches(el) : null,
         hole: kind === "tile" ? rect : null,
         t0: performance.now(),
-        dur: kind === "row" ? 420 : 190   // in step with the CSS transitions
+        dur: kind === "row" ? 420 : kind === "brand" ? 1e9 : 190
       });
       if (!running) { running = true; requestAnimationFrame(tick); }
     }
@@ -1229,6 +1248,18 @@
     }
     wire(ROWS, "row");
     if (TILES) wire(TILES, "tile");
+
+    /* Le logo, lui, ne lance pas un front qui s'éteint : il en garde un vivant
+       tant qu'on est dessus. C'est la marque qui fabrique les pixels — autant
+       que ça se voie. */
+    document.querySelectorAll(BRAND).forEach(function (el) {
+      el.addEventListener("mouseenter", function () {
+        if (brandOn) return;
+        brandOn = true;
+        launch(el, "brand", false);
+      });
+      el.addEventListener("mouseleave", function () { brandOn = false; });
+    });
   })();
   /* ---- Blur-up portraits --------------------------------------------------- *
    * The container carries --lqip, a 24px still of the photo. CSS paints it
