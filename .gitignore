@@ -19,3 +19,8 @@ work-metadata.json.bak
 _addwork.py
 _stamp.py
 _apply.py
+
+# Depot de travail : sources brutes deposees a la main — logos non detoures,
+# images pleine resolution. Ce qui doit partir en ligne est retaille et range
+# dans assets/, jamais servi depuis ici.
+public/
