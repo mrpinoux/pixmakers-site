@@ -28,3 +28,6 @@ logos.json.bak
 # dans assets/, jamais servi depuis ici.
 public/
 _addvimeo.py
+bts.json
+bts.json.bak
+_bts.py

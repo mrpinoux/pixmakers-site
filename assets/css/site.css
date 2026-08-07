@@ -1000,13 +1000,18 @@ h1.shead__title {
      108rem, la moitie de ce qui reste de chaque cote. */
   .about__shot { margin-right: calc(-1 * (var(--gut) + max(0px, (100vw - 108rem) / 2))); }
 }
-.about__text { max-width: 58ch; }
-.about__text > p + p { margin-top: 1.15em; }
-.about__lead {
+/* Meme corps que les biographies de realisateurs : c'est le texte long du
+   site, il n'y a pas de raison qu'il change de taille selon la page. Il etait
+   reste au corps courant, ce qui le faisait lire comme une legende a cote de
+   son propre chapeau — et la colonne se vidait par le bas. */
+.about__text {
   font-size: var(--t-md);
-  font-variation-settings: "wdth" 100, "wght" 600;
-  line-height: 1.35;
+  line-height: 1.6;
 }
+.about__text > p + p { margin-top: 1em; }
+/* Le chapeau ne se distingue plus que par la graisse. La taille en plus
+   faisait trois corps differents dans une colonne de quatre paragraphes. */
+.about__lead { font-variation-settings: "wdth" 100, "wght" 600; }
 .about__where { margin-top: 2rem; }
 .about__go { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
 .about__shot {
@@ -1018,7 +1023,18 @@ h1.shead__title {
 }
 .paper .about__shot { border-color: var(--rule-light); }
 .about__shot:hover { filter: none; }
-.about__shot > img { display: block; width: 100%; height: auto; }
+/* Bornee a la fenetre, moins la barre : une image de 1600 px de haut dans une
+   colonne de 700 poussait la page bien au-dela de l'ecran, et on ne voyait
+   jamais la photo en entier. Elle se recadre par le centre plutot que de
+   s'etirer. */
+.about__shot > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - var(--bar-h));
+  object-fit: cover;
+  object-position: center;
+}
 
 /* --- Director profile ---------------------------------------------------- */
 
