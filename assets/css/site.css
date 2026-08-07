@@ -989,9 +989,16 @@ h1.shead__title {
    largeur de la fenetre. */
 .about {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(2rem, 5vw, 4.5rem);
   align-items: start;
+}
+@media (min-width: 60rem) {
+  .about { grid-template-columns: 1fr 1fr; }
+  /* L'image sort du conteneur et va toucher le bord de la fenetre. La marge
+     a rattraper, c'est la gouttiere du .wrap plus, quand l'ecran depasse ses
+     108rem, la moitie de ce qui reste de chaque cote. */
+  .about__shot { margin-right: calc(-1 * (var(--gut) + max(0px, (100vw - 108rem) / 2))); }
 }
 .about__text { max-width: 58ch; }
 .about__text > p + p { margin-top: 1.15em; }
