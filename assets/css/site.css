@@ -772,8 +772,13 @@ h1.shead__title {
 
 /* --- Director index (cast list) ------------------------------------------ */
 
-.cast { border-top: 1px solid var(--rule-dark); }
-.paper .cast { border-top-color: var(--rule-light); }
+/* Pas de filet en haut de la liste. Elle ne vient jamais seule : sur la page
+   d'accueil elle suit un bandeau de section, sur la page des realisateurs le
+   texte d'introduction, et l'un comme l'autre tracent deja un trait sur toute
+   la largeur. Le sien tombait quarante-huit pixels plus bas, sans rien
+   separer de plus — deux traits paralleles aussi proches se lisent comme une
+   erreur, pas comme une intention. Chaque rangee garde le sien en bas, qui
+   fait le decoupage de la liste. */
 
 .cast__row {
   display: grid;
