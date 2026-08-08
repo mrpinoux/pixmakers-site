@@ -23,3 +23,10 @@
 # Catch anything else that lived under those two sections.
 /directors/*                /directors                 301
 /randomz/*                  /backstage                 301
+
+# La version precedente du site vivait sous /v2. Google la crawle encore et
+# tombe sur des 404 — Search Console les liste sous « Crawled - currently not
+# indexed ». On renvoie les deux chemins connus, puis le reste a l'accueil.
+/v2/directors/*             /directors                 301
+/v2/directors               /directors                 301
+/v2/*                       /                          301

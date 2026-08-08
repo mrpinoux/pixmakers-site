@@ -2,12 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://pixmakers.com/</loc><priority>1.0</priority></url>
   <url><loc>https://pixmakers.com/directors</loc><priority>0.9</priority></url>
+  <url><loc>https://pixmakers.com/about</loc><priority>0.8</priority></url>
   <url><loc>https://pixmakers.com/director-mr-pinoux</loc><priority>0.8</priority></url>
   <url><loc>https://pixmakers.com/director-ariles-de-tizi</loc><priority>0.8</priority></url>
   <url><loc>https://pixmakers.com/director-chris-cuseo</loc><priority>0.8</priority></url>
   <url><loc>https://pixmakers.com/director-lordface</loc><priority>0.8</priority></url>
-  <url><loc>https://pixmakers.com/backstage</loc><priority>0.6</priority></url>
+  <url><loc>https://pixmakers.com/director-vgtah</loc><priority>0.8</priority></url>
   <url><loc>https://pixmakers.com/contact</loc><priority>0.7</priority></url>
+  <url><loc>https://pixmakers.com/backstage</loc><priority>0.6</priority></url>
+  <url><loc>https://pixmakers.com/backstage-honda</loc><priority>0.5</priority></url>
+  <url><loc>https://pixmakers.com/backstage-swimways</loc><priority>0.5</priority></url>
+  <url><loc>https://pixmakers.com/backstage-aleem-fireflies</loc><priority>0.5</priority></url>
   <url><loc>https://pixmakers.com/backstage-fabric-london</loc><priority>0.5</priority></url>
   <url><loc>https://pixmakers.com/backstage-elle-bts</loc><priority>0.5</priority></url>
 </urlset>
