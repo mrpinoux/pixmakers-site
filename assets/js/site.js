@@ -35,7 +35,6 @@
     "French pop": "Variété française",
     "House old-school": "House old-school",
     "Afro house": "Afro house",
-    "Club night": "Nuit de club",
     "Behind the scenes": "Coulisses"
   };
 
@@ -633,14 +632,26 @@
     // before the constants that multiply by it — var hoists the name but not
     // the value, and 250 * undefined is NaN, which quietly kills every test
     // against the radius.
-    var unit = parseFloat(getComputedStyle(title).fontSize) || 100;
-    var k    = Math.max(.32, Math.min(1, unit / 150));
+    var unit, k, GRAIN, RADIUS, PUSH, ERODE_R;
 
-    // Display headings throw coarser debris than section heads — at that size
-    // the fine grain reads as dirt on the screen.
-    var GRAIN  = k > .7 ? 2 : 1;
-    var RADIUS = 250 * k;   // px of influence around the pointer
-    var PUSH   = 68 * k;    // px a letter travels at the very centre
+    /* Relue a chaque mesure, jamais figee au demarrage. fitTitles() passe
+       apres et reduit le titre pour qu'il tienne dans la mesure ; la bascule
+       de langue le redimensionne encore. Restee au chiffre du CSS, la taille
+       gravait la lettre a l'ancienne echelle dans une case decoupee a la
+       nouvelle — un pave d'encre au lieu du caractere, et le disque pixelise
+       trop large autour. */
+    function scale() {
+      unit = parseFloat(getComputedStyle(title).fontSize) || 100;
+      k    = Math.max(.32, Math.min(1, unit / 150));
+      // Display headings throw coarser debris than section heads — at that
+      // size the fine grain reads as dirt on the screen.
+      GRAIN   = k > .7 ? 2 : 1;
+      RADIUS  = 250 * k;   // px of influence around the pointer
+      PUSH    = 68 * k;    // px a letter travels at the very centre
+      ERODE_R = 78 * k;    // radius of the pixelated disc, in step with it
+    }
+    scale();
+
     var SCALE  = .52;       // extra size at the very centre, 1.52x
     var EASE   = .16;       // per-frame approach to the target
 
@@ -783,9 +794,6 @@
       return g;
     }
 
-    // Radius of the pixelated disc, in step with everything else.
-    var ERODE_R = 78 * k;
-
     function drawErosion(list) {
       ex.clearRect(0, 0, erode.width / dpr, erode.height / dpr);
       if (!list.length) return;
@@ -837,6 +845,7 @@
     // Resting centres. The live rect includes the current offset, so take it
     // back off — otherwise the anchors drift a little further every measure.
     function measure() {
+      scale();
       chars.forEach(function (c) {
         var r = c.el.getBoundingClientRect();
         /* Le titre porte ses deux langues : celle qu'on n'affiche pas est en
